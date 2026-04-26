@@ -9,9 +9,11 @@ type ForecastEntry = {
   dt: number;
   main: {
     temp: number;
+    feels_like: number;
   };
   weather: Array<{
     main: string;
+    description: string;
     icon: string;
   }>;
 };
@@ -36,19 +38,19 @@ export async function POST(req: Request) {
 
     const key = process.env.OPENWEATHER_KEY;
 
-    // 1️⃣ Clima actual
+    // 🔥 Clima actual
     const currentUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${body.lat}&lon=${body.lon}&units=metric&appid=${key}`;
 
     const currentRes = await fetch(currentUrl);
     const currentData = await currentRes.json();
 
-    // 2️⃣ Forecast horario
+    // 🔥 Forecast
     const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${body.lat}&lon=${body.lon}&units=metric&appid=${key}`;
 
     const forecastRes = await fetch(forecastUrl);
     const forecastData = await forecastRes.json();
 
-    // OpenWeather forecast viene cada 3 horas
+    // 🔥 Formatear forecast
     const hourlyFormatted = (forecastData.list as ForecastEntry[])
       .slice(0, 8)
       .map((h) => {
@@ -62,7 +64,8 @@ export async function POST(req: Request) {
         return {
           time: `${hours} ${ampm}`,
           temp: Math.round(h.main.temp),
-          condition: h.weather[0].main,
+          feels_like: Math.round(h.main.feels_like),
+          condition: h.weather[0].description, // 🔥 más preciso
           icon: h.weather[0].icon,
         };
       });
@@ -70,14 +73,19 @@ export async function POST(req: Request) {
     return NextResponse.json({
       city: currentData.name,
       country: currentData.sys?.country,
-      temp: currentData.main.temp,
-      temp_min: currentData.main.temp_min,
-      temp_max: currentData.main.temp_max,
-      condition: currentData.weather[0].main,
+
+      temp: Math.round(currentData.main.temp),
+      feels_like: Math.round(currentData.main.feels_like), // 🔥 agregado
+      temp_min: Math.round(currentData.main.temp_min),
+      temp_max: Math.round(currentData.main.temp_max),
+
+      condition: currentData.weather[0].description, // 🔥 más real
+
       hourly: hourlyFormatted,
     });
 
-  } catch {
+  } catch (error) {
+    console.log(error);
     return NextResponse.json(
       { error: "Error procesando clima" },
       { status: 500 }
