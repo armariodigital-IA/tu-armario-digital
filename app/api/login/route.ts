@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
-import { getAuthCookieOptions } from "@/lib/auth";
 import { User } from "@/models/User";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken"; // Añadimos jwt para crear el token
+import jwt from "jsonwebtoken";
 
 export async function POST(req: Request) {
   try {
@@ -23,7 +22,7 @@ export async function POST(req: Request) {
     if (!user) {
       return NextResponse.json(
         { error: "Usuario no encontrado" },
-        { status: 400 }
+        { status: 401 }
       );
     }
 
@@ -32,18 +31,18 @@ export async function POST(req: Request) {
     if (!passwordMatch) {
       return NextResponse.json(
         { error: "Contraseña incorrecta" },
-        { status: 400 }
+        { status: 401 }
       );
     }
 
-    // Crear el JWT token
+    // Crear token
     const token = jwt.sign(
       { id: user._id },
-      process.env.JWT_SECRET as string, // La clave secreta que pusiste en .env.local
-      { expiresIn: "7d" } // El token dura 7 días
+      process.env.JWT_SECRET as string,
+      { expiresIn: "7d" }
     );
 
-    // Configurar la cookie con el token
+    // Crear respuesta
     const response = NextResponse.json({
       message: "Login exitoso",
       user: {
@@ -53,13 +52,20 @@ export async function POST(req: Request) {
       },
     });
 
-    // Establecer la cookie 'token' con las opciones necesarias
-    response.cookies.set("token", token, getAuthCookieOptions());
+    // 🔥 SETEAR COOKIE BIEN (CLAVE)
+    response.cookies.set("token", token, {
+      httpOnly: true,
+      secure: false, // en local SIEMPRE false
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7, // 7 días
+    });
 
     return response;
 
   } catch (error) {
-    console.log(error);
+    console.error("Login error:", error);
+
     return NextResponse.json(
       { error: "Error del servidor" },
       { status: 500 }
