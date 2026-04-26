@@ -3,6 +3,7 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Heart, Plus, X } from "lucide-react";
+import { useLanguage } from "@/app/providers/LanguageProvider";
 
 type GarmentCategory = "top" | "bottom" | "shoes" | "outerwear";
 type GarmentSeason = "all" | "summer" | "winter";
@@ -18,6 +19,7 @@ type Garment = {
 
 export default function Wardrobe() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [garments, setGarments] = useState<Garment[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -47,7 +49,7 @@ export default function Wardrobe() {
 
   const addGarment = async () => {
     if (!name || !color || !imageUrl) {
-      setError("Todos los campos son obligatorios");
+      setError(t("allFieldsRequired"));
       return;
     }
 
@@ -74,7 +76,7 @@ export default function Wardrobe() {
 
   const deleteGarment = async (id: string) => {
     const confirmDelete = confirm(
-      "Esta prenda no podrá ser restaurada. ¿Eliminar?"
+      t("deleteGarmentConfirm")
     );
     if (!confirmDelete) return;
 
@@ -97,7 +99,7 @@ export default function Wardrobe() {
           onClick={() => router.back()}
           className="px-4 py-2 bg-[#162B4E] text-white rounded-lg"
         >
-          ← Volver
+          ← {t("back")}
         </button>
 
         <div className="flex gap-4">
@@ -117,7 +119,7 @@ export default function Wardrobe() {
       </div>
 
       <h1 className="text-4xl font-semibold text-[#162B4E] mb-8">
-        Mi Armario
+        {t("myWardrobe")}
       </h1>
 
       {/* GRID */}
@@ -155,13 +157,13 @@ export default function Wardrobe() {
             </button>
 
             <h2 className="text-2xl font-semibold mb-6">
-              Agregar Prenda
+              {t("addGarment")}
             </h2>
 
             <div className="space-y-4">
 
               <input
-                placeholder="Nombre"
+                placeholder={t("name")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full border px-4 py-2 rounded-lg"
@@ -172,14 +174,14 @@ export default function Wardrobe() {
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full border px-4 py-2 rounded-lg"
               >
-                <option value="top">Parte superior</option>
-                <option value="bottom">Parte inferior</option>
-                <option value="shoes">Calzado</option>
-                <option value="outerwear">Abrigo</option>
+                <option value="top">{t("top")}</option>
+                <option value="bottom">{t("bottom")}</option>
+                <option value="shoes">{t("shoes")}</option>
+                <option value="outerwear">{t("outerwear")}</option>
               </select>
 
               <input
-                placeholder="Color"
+                placeholder={t("color")}
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
                 className="w-full border px-4 py-2 rounded-lg"
@@ -190,13 +192,13 @@ export default function Wardrobe() {
                 onChange={(e) => setSeason(e.target.value)}
                 className="w-full border px-4 py-2 rounded-lg"
               >
-                <option value="all">Todo el año</option>
-                <option value="summer">Verano</option>
-                <option value="winter">Invierno</option>
+                <option value="all">{t("allYear")}</option>
+                <option value="summer">{t("summer")}</option>
+                <option value="winter">{t("winter")}</option>
               </select>
 
               <input
-                placeholder="URL imagen"
+                placeholder={t("imageUrl")}
                 value={imageUrl}
                 onChange={(e) => setImageUrl(e.target.value)}
                 className="w-full border px-4 py-2 rounded-lg"
@@ -227,7 +229,7 @@ export default function Wardrobe() {
                 onClick={addGarment}
                 className="w-full bg-[#162B4E] text-white py-2 rounded-lg"
               >
-                Guardar
+                {t("save")}
               </button>
 
             </div>
@@ -261,11 +263,27 @@ export default function Wardrobe() {
             </h2>
 
             <p className="text-gray-600 capitalize">
-              Categoría: {selectedGarment.category}
+              {t("category", {
+                value:
+                  selectedGarment.category === "top"
+                    ? t("top")
+                    : selectedGarment.category === "bottom"
+                    ? t("bottom")
+                    : selectedGarment.category === "shoes"
+                    ? t("shoes")
+                    : t("outerwear"),
+              })}
             </p>
 
             <p className="text-gray-600 capitalize mb-6">
-              Temporada: {selectedGarment.season}
+              {t("season", {
+                value:
+                  selectedGarment.season === "all"
+                    ? t("allYear")
+                    : selectedGarment.season === "summer"
+                    ? t("summer")
+                    : t("winter"),
+              })}
             </p>
 
             <div className="flex gap-4">
@@ -274,11 +292,11 @@ export default function Wardrobe() {
                 onClick={() => deleteGarment(selectedGarment._id)}
                 className="flex-1 bg-red-500 text-white py-2 rounded-lg"
               >
-                Eliminar
+                {t("delete")}
               </button>
 
               <button className="flex-1 bg-[#162B4E] text-white py-2 rounded-lg">
-                Favorito
+                {t("favorite")}
               </button>
 
             </div>

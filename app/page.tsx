@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import AuthModal from "@/app/components/AuthModal";
+import { useLanguage } from "@/app/providers/LanguageProvider";
 
 export default function Home() {
   const [modalType, setModalType] = useState<"login" | "register" | null>(null);
+  const { t } = useLanguage();
 
   return (
     <main className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#f5f1eb]">
@@ -31,11 +33,11 @@ export default function Home() {
       {/* Centro */}
       <div className="relative z-10 text-center space-y-10">
         <h1 className="text-7xl font-semibold tracking-tight text-[#1f2937]">
-          Tu Armario Digital
+          Armario Digital
         </h1>
 
         <p className="text-[#162B4E] text-lg">
-          Minimalismo con carácter.
+          {t("homeTagline")}
         </p>
 
         {/* Botones debajo del título */}
@@ -47,7 +49,7 @@ export default function Home() {
                        hover:scale-105 active:scale-95
                        transition-all duration-300"
           >
-            Iniciar sesión
+            {t("login")}
           </button>
 
           <button
@@ -58,7 +60,7 @@ export default function Home() {
                        hover:scale-105 active:scale-95
                        transition-all duration-300"
           >
-            Crear cuenta
+            {t("createAccount")}
           </button>
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "@/app/providers/LanguageProvider";
 
 type GarmentCategory = "top" | "bottom" | "shoes" | "outerwear";
 
@@ -13,15 +14,9 @@ type Garment = {
   imageUrl: string;
 };
 
-const categoryLabels: Record<GarmentCategory, string> = {
-  top: "Parte superior",
-  bottom: "Parte inferior",
-  shoes: "Calzado",
-  outerwear: "Abrigo",
-};
-
 export default function ManualOutfitPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [garments, setGarments] = useState<Garment[]>([]);
   const [selected, setSelected] = useState<Partial<Record<GarmentCategory, Garment>>>({});
   const [error, setError] = useState("");
@@ -32,7 +27,7 @@ export default function ManualOutfitPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "No se pudo cargar tu armario");
+        setError(data.error || t("loadWardrobeError"));
         return;
       }
 
@@ -40,7 +35,7 @@ export default function ManualOutfitPage() {
     };
 
     void loadGarments();
-  }, []);
+  }, [t]);
 
   const groupedGarments = garments.reduce<Record<GarmentCategory, Garment[]>>(
     (acc, garment) => {
@@ -50,22 +45,29 @@ export default function ManualOutfitPage() {
     { top: [], bottom: [], shoes: [], outerwear: [] }
   );
 
+  const categoryLabels: Record<GarmentCategory, string> = {
+    top: t("top"),
+    bottom: t("bottom"),
+    shoes: t("shoes"),
+    outerwear: t("outerwear"),
+  };
+
   return (
     <main className="min-h-screen bg-[#F5EFE3] px-8 py-10">
       <button
         onClick={() => router.back()}
         className="mb-8 px-4 py-2 bg-[#162B4E] text-white rounded-lg"
       >
-        ← Volver
+        ← {t("back")}
       </button>
 
       <div className="max-w-6xl mx-auto space-y-10">
         <div>
           <h1 className="text-4xl font-semibold text-[#162B4E] mb-3">
-            Crear outfit manualmente
+            {t("createOutfitManually")}
           </h1>
           <p className="text-[#374151]">
-            Elegí una prenda por categoría y armá una combinación con tu armario real.
+            {t("manualOutfitDescription")}
           </p>
         </div>
 
@@ -80,7 +82,7 @@ export default function ManualOutfitPage() {
                 </h2>
                 {selected[category] && (
                   <p className="text-sm text-[#374151]">
-                    Seleccionada: {selected[category]?.name}
+                    {t("selectedItem", { name: selected[category]?.name ?? "" })}
                   </p>
                 )}
               </div>

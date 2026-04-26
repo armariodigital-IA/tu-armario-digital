@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "@/app/providers/LanguageProvider";
 
 export default function Register() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -24,40 +26,40 @@ export default function Register() {
     const data = await res.json();
 
     if (res.ok) {
-      alert("Cuenta creada correctamente. Ahora puedes iniciar sesión.");
+      alert(t("registerPageSuccess"));
       router.push("/");
     } else {
-      alert(data.error);
+      alert(data.error || t("serverError"));
     }
   };
 
   return (
     <div>
-      <h1>Registrarse</h1>
+      <h1>{t("register")}</h1>
 
       <form onSubmit={handleSubmit}>
         <input
           type="text"
-          placeholder="Nombre"
+          placeholder={t("name")}
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
 
         <input
           type="email"
-          placeholder="Email"
+          placeholder={t("emailPlaceholder")}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
 
         <input
           type="password"
-          placeholder="Password"
+          placeholder={t("password")}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        <button type="submit">Registrarme</button>
+        <button type="submit">{t("register")}</button>
       </form>
     </div>
   );

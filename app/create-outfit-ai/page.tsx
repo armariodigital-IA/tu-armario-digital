@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "@/app/providers/LanguageProvider";
 
 type WeatherSummary = {
   city: string;
@@ -23,6 +24,7 @@ type StructuredOutfit = {
 
 export default function GenerateAIOutfit() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [occasion, setOccasion] = useState("casual");
   const [mood, setMood] = useState("relajado");
@@ -69,7 +71,7 @@ export default function GenerateAIOutfit() {
     setLoading(false);
 
     if (!res.ok) {
-      setError(data.error || "Error generando outfit");
+      setError(data.error || t("errorGeneratingOutfit"));
       return;
     }
 
@@ -84,40 +86,40 @@ export default function GenerateAIOutfit() {
         onClick={() => router.back()}
         className="mb-6 px-4 py-2 bg-[#162B4E] text-white rounded-lg"
       >
-        ← Volver
+        ← {t("back")}
       </button>
 
       <h1 className="text-4xl font-semibold text-[#162B4E] mb-10">
-        Generar Outfit con IA
+        {t("generateOutfitAI")}
       </h1>
 
       <div className="bg-white p-10 rounded-3xl shadow-xl space-y-6 max-w-xl mb-12">
 
         <div>
-          <label className="block font-medium mb-2">Ocasión</label>
+          <label className="block font-medium mb-2">{t("occasion")}</label>
           <select
             value={occasion}
             onChange={(e) => setOccasion(e.target.value)}
             className="w-full border px-4 py-2 rounded-lg"
           >
-            <option value="casual">Casual</option>
-            <option value="formal">Formal</option>
-            <option value="deportivo">Deportivo</option>
+            <option value="casual">{t("casual")}</option>
+            <option value="formal">{t("formal")}</option>
+            <option value="deportivo">{t("sporty")}</option>
           </select>
         </div>
 
         <div>
           <label className="block font-medium mb-2">
-            ¿Cómo te sentís hoy?
+            {t("howFeelToday")}
           </label>
           <select
             value={mood}
             onChange={(e) => setMood(e.target.value)}
             className="w-full border px-4 py-2 rounded-lg"
           >
-            <option value="relajado">Relajado</option>
-            <option value="seguro">Seguro</option>
-            <option value="creativo">Creativo</option>
+            <option value="relajado">{t("relaxed")}</option>
+            <option value="seguro">{t("confident")}</option>
+            <option value="creativo">{t("creative")}</option>
           </select>
         </div>
 
@@ -125,7 +127,7 @@ export default function GenerateAIOutfit() {
           onClick={generate}
           className="w-full bg-[#162B4E] text-white py-2 rounded-lg"
         >
-          {loading ? "Generando..." : "Generar Outfit"}
+          {loading ? t("generating") : t("generateOutfit")}
         </button>
 
         {error && (

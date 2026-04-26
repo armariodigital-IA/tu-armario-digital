@@ -3,6 +3,7 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { useLanguage } from "@/app/providers/LanguageProvider";
 
 type AuthModalProps = {
   type: "login" | "register";
@@ -11,6 +12,7 @@ type AuthModalProps = {
 };
 
 export default function AuthModal({ type, onClose, onSuccess }: AuthModalProps) {
+  const { t } = useLanguage();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,22 +40,22 @@ export default function AuthModal({ type, onClose, onSuccess }: AuthModalProps) 
     setSuccess("");
 
     if (type === "register" && !name.trim())
-      return triggerError("El nombre completo es obligatorio.");
+      return triggerError(t("fullNameRequired"));
 
     if (!email.trim())
-      return triggerError("El email es obligatorio.");
+      return triggerError(t("emailRequired"));
 
     if (!validateEmail(email))
-      return triggerError("Ingresá un email válido.");
+      return triggerError(t("validEmail"));
 
     if (!password)
-      return triggerError("La contraseña es obligatoria.");
+      return triggerError(t("passwordRequired"));
 
     if (password.length < 8)
-      return triggerError("Debe tener mínimo 8 caracteres.");
+      return triggerError(t("passwordMin"));
 
     if (type === "register" && password !== confirmPassword)
-      return triggerError("Las contraseñas no coinciden.");
+      return triggerError(t("passwordsMismatch"));
 
     setLoading(true);
 
@@ -76,7 +78,7 @@ export default function AuthModal({ type, onClose, onSuccess }: AuthModalProps) 
 
       if (res.ok) {
         if (type === "register") {
-          setSuccess("Cuenta creada con éxito 🎉");
+          setSuccess(t("accountCreated"));
           setTimeout(() => {
             window.location.href = "/";
           }, 1500);
@@ -84,10 +86,10 @@ export default function AuthModal({ type, onClose, onSuccess }: AuthModalProps) 
           onSuccess();
         }
       } else {
-        triggerError(data.error || "Error en el servidor.");
+        triggerError(data.error || t("serverError"));
       }
     } catch {
-      triggerError("No se pudo conectar con el servidor.");
+      triggerError(t("connectionError"));
     } finally {
       setLoading(false);
     }
@@ -105,7 +107,7 @@ export default function AuthModal({ type, onClose, onSuccess }: AuthModalProps) 
         }`}
       >
         <h2 className="text-2xl font-semibold text-[#162B4E] text-center">
-          {type === "login" ? "Iniciar sesión" : "Crear cuenta"}
+          {type === "login" ? t("login") : t("createAccount")}
         </h2>
 
         {error && (
@@ -123,7 +125,7 @@ export default function AuthModal({ type, onClose, onSuccess }: AuthModalProps) 
         {type === "register" && (
           <input
             type="text"
-            placeholder="Nombre completo *"
+            placeholder={t("fullNamePlaceholder")}
             value={name}
             onChange={(e) => setName(e.target.value)}
             className={inputStyle}
@@ -132,7 +134,7 @@ export default function AuthModal({ type, onClose, onSuccess }: AuthModalProps) 
 
         <input
           type="email"
-          placeholder="Email *"
+          placeholder={t("emailPlaceholder")}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className={inputStyle}
@@ -142,7 +144,7 @@ export default function AuthModal({ type, onClose, onSuccess }: AuthModalProps) 
         <div className="relative">
           <input
             type={showPassword ? "text" : "password"}
-            placeholder="Contraseña *"
+            placeholder={t("passwordPlaceholder")}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className={`${inputStyle} pr-10`}
@@ -160,7 +162,7 @@ export default function AuthModal({ type, onClose, onSuccess }: AuthModalProps) 
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
-              placeholder="Confirmar contraseña *"
+              placeholder={t("confirmPasswordPlaceholder")}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className={`${inputStyle} pr-10`}
@@ -181,8 +183,8 @@ export default function AuthModal({ type, onClose, onSuccess }: AuthModalProps) 
             onChange={(e) => setGender(e.target.value)}
             className={inputStyle}
           >
-            <option value="hombre">Hombre</option>
-            <option value="mujer">Mujer</option>
+            <option value="hombre">{t("genderMale")}</option>
+            <option value="mujer">{t("genderFemale")}</option>
           </select>
         )}
 
@@ -192,10 +194,10 @@ export default function AuthModal({ type, onClose, onSuccess }: AuthModalProps) 
           className="w-full bg-[#162B4E] text-white py-2 rounded-lg hover:opacity-90 transition"
         >
           {loading
-            ? "Procesando..."
+            ? t("processing")
             : type === "login"
-            ? "Entrar"
-            : "Registrarse"}
+            ? t("enter")
+            : t("register")}
         </button>
 
         <button
@@ -203,7 +205,7 @@ export default function AuthModal({ type, onClose, onSuccess }: AuthModalProps) 
           onClick={onClose}
           className="text-sm text-[#162B4E] hover:underline w-full text-center"
         >
-          Cancelar
+          {t("cancel")}
         </button>
       </form>
  

@@ -9,6 +9,8 @@ import {
   CloudFog,
   Wind,
 } from "lucide-react";
+import { useLanguage } from "@/app/providers/LanguageProvider";
+import { languageLabels, type Language } from "@/app/i18n";
 
 type User = {
   id: string;
@@ -32,7 +34,8 @@ type WeatherData = {
 
 function buildFallbackHourlyForecast(
   temperature: number,
-  condition: string
+  condition: string,
+  language: Language
 ): HourlyForecast[] {
   const now = new Date();
   const offsets = [0, 1, 2, 3, 4];
@@ -41,13 +44,10 @@ function buildFallbackHourlyForecast(
     const date = new Date(now);
     date.setHours(now.getHours() + offset);
 
-    let hours = date.getHours();
-    const ampm = hours >= 12 ? "PM" : "AM";
-    hours = hours % 12;
-    hours = hours || 12;
-
     return {
-      time: `${hours} ${ampm}`,
+      time: new Intl.DateTimeFormat(language === "es" ? "es-UY" : "en-US", {
+        hour: "numeric",
+      }).format(date),
       temp: Math.round(temperature + (index % 2 === 0 ? 0 : 1) - (index > 2 ? 1 : 0)),
       condition,
     };
@@ -55,6 +55,7 @@ function buildFallbackHourlyForecast(
 }
 
 export default function Dashboard() {
+  const { language, setLanguage, t } = useLanguage();
   const [user, setUser] = useState<User | null>(null);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [hourly, setHourly] = useState<HourlyForecast[]>([]);
@@ -71,7 +72,7 @@ export default function Dashboard() {
     fetch("/api/me", { credentials: "include" })
   .then(res => res.json())
   .then(data => setUser(data));
-  }, []);
+  }, [t]);
 
   /* ================= OUTFIT Y CLIMA ================= */
   useEffect(() => {
@@ -89,7 +90,7 @@ export default function Dashboard() {
         if (!isMounted) return;
 
         if (!res.ok) {
-          throw new Error(data.error || "No se pudo cargar la recomendación");
+          throw new Error(data.error || t("recommendationLoadError"));
         }
 
         setWeather(data.weather ?? null);
@@ -100,7 +101,7 @@ export default function Dashboard() {
 
         setWeather(null);
         setHourly([]);
-        setOutfit("No pudimos cargar tu recomendación por ahora.");
+        setOutfit(t("recommendationLoadError"));
       } finally {
         if (isMounted) {
           setIsLoadingOutfit(false);
@@ -113,7 +114,7 @@ export default function Dashboard() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [t]);
 
   const logout = async () => {
     await fetch("/api/logout", { method: "POST" });
@@ -131,11 +132,14 @@ export default function Dashboard() {
     return <Sun size={size} />;
   };
 
-  const currentDay = new Intl.DateTimeFormat("es-UY", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  }).format(new Date());
+  const localizedCurrentDay = new Intl.DateTimeFormat(
+    language === "es" ? "es-UY" : "en-US",
+    {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    }
+  ).format(new Date());
 
   const highTemp = weather ? Math.round(weather.temperature + 2) : null;
   const lowTemp = weather ? Math.round(weather.temperature - 3) : null;
@@ -143,7 +147,7 @@ export default function Dashboard() {
     hourly.length > 0
       ? hourly
       : weather
-      ? buildFallbackHourlyForecast(weather.temperature, weather.condition)
+      ? buildFallbackHourlyForecast(weather.temperature, weather.condition, language)
       : [];
 
   const ButtonStyle =
@@ -151,22 +155,18 @@ export default function Dashboard() {
 
   /* ================= FRASES DINÁMICAS PRO ================= */
 
-  const generateRandomQuestion = (firstName: string) => {
-    const questions = [
-      `¿Qué outfit vas a romper hoy, ${firstName}?`,
-      `¿Listo para conquistar el día, ${firstName}?`,
-      `¿Qué estilo define tu energía hoy, ${firstName}?`,
-      `¿Hoy vamos clásico o arriesgado, ${firstName}?`,
-      `¿Qué versión tuya mostramos hoy, ${firstName}?`,
-    ];
-    return questions[Math.floor(Math.random() * questions.length)];
-  };
-
   // Generar primera frase
   useEffect(() => {
-    const firstName = user?.name?.split(" ")[0] || "Amigo";
-    setFullText(generateRandomQuestion(firstName));
-  }, [user]);
+    const firstName = user?.name?.split(" ")[0] || t("friend");
+    const questions = [
+      t("dashboardQuestion1", { name: firstName }),
+      t("dashboardQuestion2", { name: firstName }),
+      t("dashboardQuestion3", { name: firstName }),
+      t("dashboardQuestion4", { name: firstName }),
+      t("dashboardQuestion5", { name: firstName }),
+    ];
+    setFullText(questions[Math.floor(Math.random() * questions.length)]);
+  }, [user, language, t]);
 
   // Typewriter con fade suave
   useEffect(() => {
@@ -187,18 +187,25 @@ export default function Dashboard() {
 
   // Cambio automático con micro fade
   useEffect(() => {
-    const firstName = user?.name?.split(" ")[0] || "Amigo";
+    const firstName = user?.name?.split(" ")[0] || t("friend");
+    const questions = [
+      t("dashboardQuestion1", { name: firstName }),
+      t("dashboardQuestion2", { name: firstName }),
+      t("dashboardQuestion3", { name: firstName }),
+      t("dashboardQuestion4", { name: firstName }),
+      t("dashboardQuestion5", { name: firstName }),
+    ];
 
     const interval = setInterval(() => {
       setIsFading(true);
 
       setTimeout(() => {
-        setFullText(generateRandomQuestion(firstName));
+        setFullText(questions[Math.floor(Math.random() * questions.length)]);
       }, 400);
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, language, t]);
 
   return (
     <main className="relative min-h-screen bg-[#F5EFE3] px-10 py-8 overflow-hidden">
@@ -216,13 +223,13 @@ export default function Dashboard() {
   onClick={() => (window.location.href = "/create-outfit")}
   className={ButtonStyle}
 >
-  Crea tu outfit
+  {t("createYourOutfit")}
 </button>
           <button
   onClick={() => (window.location.href = "/wardrobe")}
   className={ButtonStyle}
 >
-  Mi armario
+  {t("myWardrobe")}
 </button>
         </div>
 
@@ -231,16 +238,37 @@ export default function Dashboard() {
             onClick={() => setShowMenu(!showMenu)}
             className={ButtonStyle}
           >
-            Cuenta
+            {t("account")}
           </button>
 
           {showMenu && (
-            <div className="absolute right-0 mt-3 bg-white shadow-xl rounded-2xl p-4">
+            <div className="absolute right-0 mt-3 min-w-[200px] bg-white shadow-xl rounded-2xl p-4 space-y-4">
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#162B4E]/60">
+                  {t("language")}
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {(Object.keys(languageLabels) as Language[]).map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => setLanguage(option)}
+                      className={`rounded-xl px-3 py-2 text-sm font-medium transition ${
+                        language === option
+                          ? "bg-[#162B4E] text-white"
+                          : "bg-[#F5EFE3] text-[#162B4E]"
+                      }`}
+                    >
+                      {t(option === "es" ? "spanish" : "english")}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <button
                 onClick={logout}
                 className="text-red-500 font-medium hover:opacity-70"
               >
-                Cerrar sesión
+                {t("logout")}
               </button>
             </div>
           )}
@@ -274,7 +302,7 @@ export default function Dashboard() {
                     {weather.city}
                   </p>
                   <p className="text-sm font-medium capitalize tracking-[0.04em] text-white/70">
-                    {currentDay}
+                    {localizedCurrentDay}
                   </p>
                 </div>
 
@@ -300,8 +328,10 @@ export default function Dashboard() {
 
                   {typeof weather.feels_like === "number" && (
                     <p className="mt-2 text-base font-medium text-white/76">
-                      {Math.round(weather.temperature)}° (feels like{" "}
-                      {Math.round(weather.feels_like)}°)
+                      {t("feelsLike", {
+                        temp: Math.round(weather.temperature),
+                        feelsLike: Math.round(weather.feels_like),
+                      })}
                     </p>
                   )}
 
@@ -317,10 +347,10 @@ export default function Dashboard() {
                 <div className="rounded-[22px] border border-white/15 bg-white/12 px-5 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-xl">
                   <div className="mb-4 flex items-center justify-between border-b border-white/12 pb-3">
                     <span className="text-xs font-semibold uppercase tracking-[0.18em] text-white/58">
-                      Pronóstico por hora
+                      {t("hourlyForecast")}
                     </span>
                     <span className="text-xs text-white/52">
-                      Próximas horas
+                      {t("upcomingHours")}
                     </span>
                   </div>
 
@@ -351,11 +381,11 @@ export default function Dashboard() {
         <div className="flex flex-col justify-between bg-white p-10 rounded-[3rem] shadow-2xl">
           <div>
             <h2 className="text-3xl font-semibold mb-6 text-[#162B4E]">
-              Outfit del día
+              {t("outfitOfDay")}
             </h2>
 
             <p className="text-lg text-[#374151] leading-relaxed tracking-wide">
-              {isLoadingOutfit ? "Generando recomendación..." : outfit}
+              {isLoadingOutfit ? t("createRecommendationLoading") : outfit}
             </p>
           </div>
         </div>
