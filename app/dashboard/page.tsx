@@ -24,7 +24,7 @@ type HourlyForecast = {
 
 type WeatherData = {
   city: string;
-  temp: number;
+  temperature: number;
   condition: string;
   hourly?: HourlyForecast[];
 };
@@ -35,6 +35,7 @@ export default function Dashboard() {
   const [hourly, setHourly] = useState<HourlyForecast[]>([]);
   const [showMenu, setShowMenu] = useState(false);
   const [outfit, setOutfit] = useState("");
+  const [isLoadingOutfit, setIsLoadingOutfit] = useState(true);
 
   const [displayText, setDisplayText] = useState("");
   const [fullText, setFullText] = useState("");
@@ -47,44 +48,46 @@ export default function Dashboard() {
   .then(data => setUser(data));
   }, []);
 
-  /* ================= WEATHER ================= */
+  /* ================= OUTFIT Y CLIMA ================= */
   useEffect(() => {
-    if (!navigator.geolocation) return;
+    let isMounted = true;
 
-    navigator.geolocation.getCurrentPosition(async (position) => {
-      const res = await fetch("/api/weather", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lat: position.coords.latitude,
-          lon: position.coords.longitude,
-        }),
-      });
+    const loadOutfit = async () => {
+      try {
+        const res = await fetch("/api/outfit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
 
-      const data = await res.json();
-      setWeather(data);
+        const data = await res.json();
 
-      const formattedHours =
-        data.hourly?.slice(0, 8).map((h: HourlyForecast) => ({
-          time: h.time,
-          temp: h.temp,
-          condition: h.condition,
-        })) || [];
+        if (!isMounted) return;
 
-      setHourly(formattedHours);
+        if (!res.ok) {
+          throw new Error(data.error || "No se pudo cargar la recomendación");
+        }
 
-      const outfitRes = await fetch("/api/outfit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lat: position.coords.latitude,
-          lon: position.coords.longitude,
-        }),
-      });
+        setWeather(data.weather ?? null);
+        setHourly(data.weather?.hourly ?? []);
+        setOutfit(data.outfit ?? "");
+      } catch {
+        if (!isMounted) return;
 
-      const outfitData = await outfitRes.json();
-      setOutfit(outfitData.outfit);
-    });
+        setWeather(null);
+        setHourly([]);
+        setOutfit("No pudimos cargar tu recomendación por ahora.");
+      } finally {
+        if (isMounted) {
+          setIsLoadingOutfit(false);
+        }
+      }
+    };
+
+    loadOutfit();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const logout = async () => {
@@ -234,7 +237,7 @@ export default function Dashboard() {
                 </p>
 
                 <p className="text-[90px] font-extralight leading-none">
-                  {Math.round(weather.temp)}°
+                  {Math.round(weather.temperature)}°
                 </p>
 
                 <p className="text-lg opacity-80 capitalize">
@@ -268,7 +271,7 @@ export default function Dashboard() {
             </h2>
 
             <p className="text-lg text-[#374151] leading-relaxed tracking-wide">
-              {outfit || "Generando recomendación..."}
+              {isLoadingOutfit ? "Generando recomendación..." : outfit}
             </p>
           </div>
         </div>
