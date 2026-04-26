@@ -14,11 +14,19 @@ export async function POST(req: NextRequest) {
     }
 
     const decoded = verifyAuthToken(token);
-    const body = await req.json();
+    const body = (await req.json()) as Record<string, unknown>;
+    const nextFavorite =
+      typeof body.isFavorite === "boolean"
+        ? body.isFavorite
+        : typeof body.favorite === "boolean"
+          ? body.favorite
+          : false;
 
     const garment = await Garment.create({
       userId: decoded.id,
       ...body,
+      isFavorite: nextFavorite,
+      favorite: nextFavorite,
     });
 
     return NextResponse.json(garment, { status: 201 });
@@ -47,8 +55,18 @@ export async function GET(req: NextRequest) {
     const decoded = verifyAuthToken(token);
 
     const garments = await Garment.find({ userId: decoded.id });
+    const normalizedGarments = garments.map((garment) => {
+      const json = garment.toObject();
+      const isFavorite = Boolean(json.isFavorite ?? json.favorite);
 
-    return NextResponse.json(garments);
+      return {
+        ...json,
+        isFavorite,
+        favorite: isFavorite,
+      };
+    });
+
+    return NextResponse.json(normalizedGarments);
   } catch (error) {
     console.error(error);
     return NextResponse.json(

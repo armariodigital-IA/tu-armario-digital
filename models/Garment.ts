@@ -37,6 +37,14 @@ const GarmentSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    isFavorite: {
+      type: Boolean,
+      default: false,
+    },
+    favorite: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

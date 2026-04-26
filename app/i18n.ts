@@ -346,6 +346,82 @@ export const translations = {
     es: "Favorito",
     en: "Favorite",
   },
+  favoritesOnly: {
+    es: "Solo favoritos",
+    en: "Favorites only",
+  },
+  noGarmentsYet: {
+    es: "Todavía no agregaste prendas.",
+    en: "You haven't added any garments yet.",
+  },
+  noFavoriteGarments: {
+    es: "Todavía no marcaste prendas favoritas.",
+    en: "You haven't marked any favorites yet.",
+  },
+  wardrobeEmptyHint: {
+    es: "Sumá tu primera prenda para empezar a organizar tu armario digital.",
+    en: "Add your first garment to start building your digital wardrobe.",
+  },
+  edit: {
+    es: "Editar",
+    en: "Edit",
+  },
+  saveChanges: {
+    es: "Guardar cambios",
+    en: "Save changes",
+  },
+  cancel: {
+    es: "Cancelar",
+    en: "Cancel",
+  },
+  details: {
+    es: "Detalles",
+    en: "Details",
+  },
+  colorLabel: {
+    es: "Color: {value}",
+    en: "Color: {value}",
+  },
+  close: {
+    es: "Cerrar",
+    en: "Close",
+  },
+  deleteGarmentTitle: {
+    es: "Eliminar prenda",
+    en: "Delete garment",
+  },
+  deleteGarmentDescription: {
+    es: "Esta acción elimina la prenda de tu armario y no se puede deshacer.",
+    en: "This action removes the garment from your wardrobe and cannot be undone.",
+  },
+  deleteGarmentAction: {
+    es: "Sí, eliminar",
+    en: "Yes, delete",
+  },
+  favoriteAdded: {
+    es: "Agregada a favoritos",
+    en: "Added to favorites",
+  },
+  favoriteRemoved: {
+    es: "Removida de favoritos",
+    en: "Removed from favorites",
+  },
+  notFavoriteYet: {
+    es: "Todavía no está en favoritos",
+    en: "Not in favorites yet",
+  },
+  updateGarmentError: {
+    es: "No se pudo actualizar la prenda.",
+    en: "Couldn't update the garment.",
+  },
+  deleteGarmentError: {
+    es: "No se pudo eliminar la prenda.",
+    en: "Couldn't delete the garment.",
+  },
+  saveChangesError: {
+    es: "Revisá los datos antes de guardar.",
+    en: "Check the garment details before saving.",
+  },
   createYourOutfit: {
     es: "Crea tu outfit",
     en: "Create your outfit",
