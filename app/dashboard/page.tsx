@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Sun,
   Cloud,
@@ -66,13 +66,18 @@ export default function Dashboard() {
   const [displayText, setDisplayText] = useState("");
   const [fullText, setFullText] = useState("");
   const [isFading, setIsFading] = useState(false);
+  const friendLabel = useMemo(() => t("friend"), [t]);
+  const recommendationLoadError = useMemo(
+    () => t("recommendationLoadError"),
+    [t]
+  );
 
   /* ================= USER ================= */
   useEffect(() => {
     fetch("/api/me", { credentials: "include" })
   .then(res => res.json())
   .then(data => setUser(data));
-  }, [t]);
+  }, []);
 
   /* ================= OUTFIT Y CLIMA ================= */
   useEffect(() => {
@@ -90,7 +95,7 @@ export default function Dashboard() {
         if (!isMounted) return;
 
         if (!res.ok) {
-          throw new Error(data.error || t("recommendationLoadError"));
+          throw new Error(data.error || recommendationLoadError);
         }
 
         setWeather(data.weather ?? null);
@@ -101,7 +106,7 @@ export default function Dashboard() {
 
         setWeather(null);
         setHourly([]);
-        setOutfit(t("recommendationLoadError"));
+        setOutfit(recommendationLoadError);
       } finally {
         if (isMounted) {
           setIsLoadingOutfit(false);
@@ -114,7 +119,7 @@ export default function Dashboard() {
     return () => {
       isMounted = false;
     };
-  }, [t]);
+  }, [recommendationLoadError]);
 
   const logout = async () => {
     await fetch("/api/logout", { method: "POST" });
@@ -150,6 +155,18 @@ export default function Dashboard() {
       ? buildFallbackHourlyForecast(weather.temperature, weather.condition, language)
       : [];
 
+  const firstName = user?.name?.split(" ")[0] || friendLabel;
+  const dashboardQuestions = useMemo(
+    () => [
+      t("dashboardQuestion1", { name: firstName }),
+      t("dashboardQuestion2", { name: firstName }),
+      t("dashboardQuestion3", { name: firstName }),
+      t("dashboardQuestion4", { name: firstName }),
+      t("dashboardQuestion5", { name: firstName }),
+    ],
+    [firstName, t]
+  );
+
   const ButtonStyle =
     "px-6 py-2 rounded-xl bg-[#162B4E] text-white shadow-md hover:scale-105 active:scale-95 transition-all duration-300";
 
@@ -157,16 +174,10 @@ export default function Dashboard() {
 
   // Generar primera frase
   useEffect(() => {
-    const firstName = user?.name?.split(" ")[0] || t("friend");
-    const questions = [
-      t("dashboardQuestion1", { name: firstName }),
-      t("dashboardQuestion2", { name: firstName }),
-      t("dashboardQuestion3", { name: firstName }),
-      t("dashboardQuestion4", { name: firstName }),
-      t("dashboardQuestion5", { name: firstName }),
-    ];
-    setFullText(questions[Math.floor(Math.random() * questions.length)]);
-  }, [user, language, t]);
+    setFullText(
+      dashboardQuestions[Math.floor(Math.random() * dashboardQuestions.length)]
+    );
+  }, [dashboardQuestions]);
 
   // Typewriter con fade suave
   useEffect(() => {
@@ -187,25 +198,20 @@ export default function Dashboard() {
 
   // Cambio automático con micro fade
   useEffect(() => {
-    const firstName = user?.name?.split(" ")[0] || t("friend");
-    const questions = [
-      t("dashboardQuestion1", { name: firstName }),
-      t("dashboardQuestion2", { name: firstName }),
-      t("dashboardQuestion3", { name: firstName }),
-      t("dashboardQuestion4", { name: firstName }),
-      t("dashboardQuestion5", { name: firstName }),
-    ];
-
     const interval = setInterval(() => {
       setIsFading(true);
 
       setTimeout(() => {
-        setFullText(questions[Math.floor(Math.random() * questions.length)]);
+        setFullText(
+          dashboardQuestions[
+            Math.floor(Math.random() * dashboardQuestions.length)
+          ]
+        );
       }, 400);
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [user, language, t]);
+  }, [dashboardQuestions]);
 
   return (
     <main className="relative min-h-screen bg-[#F5EFE3] px-10 py-8 overflow-hidden">
