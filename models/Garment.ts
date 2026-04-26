@@ -20,6 +20,14 @@ const GarmentSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    style: {
+      type: String,
+      default: "",
+    },
+    material: {
+      type: String,
+      default: "",
+    },
     season: {
       type: String,
       enum: ["summer", "winter", "all"],

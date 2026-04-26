@@ -214,17 +214,97 @@ export const translations = {
     es: "Agregar Prenda",
     en: "Add Garment",
   },
+  aiWardrobeAssistant: {
+    es: "Asistente de armario con IA",
+    en: "AI wardrobe assistant",
+  },
+  uploadGarmentImage: {
+    es: "Subí una foto de la prenda",
+    en: "Upload a garment photo",
+  },
+  uploadGarmentHint: {
+    es: "Arrastrá una imagen aquí o hacé click para seleccionar una.",
+    en: "Drag an image here or click to choose one.",
+  },
+  uploadGarmentHintSecondary: {
+    es: "La IA va a sugerir categoría, color, estilo, temporada y material.",
+    en: "AI will suggest category, color, style, season, and material.",
+  },
+  analyzingImage: {
+    es: "Analizando imagen...",
+    en: "Analyzing image...",
+  },
+  aiSuggestionsReady: {
+    es: "Sugerencias listas. Podés editar todo antes de guardar.",
+    en: "Suggestions are ready. You can edit everything before saving.",
+  },
+  analyzeImageError: {
+    es: "No se pudo analizar la imagen. Podés completar la prenda manualmente.",
+    en: "Couldn't analyze the image. You can complete the garment manually.",
+  },
+  garmentDetails: {
+    es: "Detalles de la prenda",
+    en: "Garment details",
+  },
+  garmentDetailsHint: {
+    es: "La IA completa lo que puede y vos ajustás los detalles finales.",
+    en: "AI fills what it can and you fine-tune the final details.",
+  },
   name: {
     es: "Nombre",
     en: "Name",
+  },
+  namePlaceholder: {
+    es: "Ej. Camisa Oxford blanca",
+    en: "e.g. White Oxford shirt",
   },
   color: {
     es: "Color",
     en: "Color",
   },
+  colorPlaceholder: {
+    es: "Ej. Azul marino",
+    en: "e.g. Navy blue",
+  },
+  style: {
+    es: "Estilo",
+    en: "Style",
+  },
+  stylePlaceholder: {
+    es: "Ej. Casual, sastrero, deportivo",
+    en: "e.g. Casual, tailored, sporty",
+  },
+  material: {
+    es: "Material",
+    en: "Material",
+  },
+  materialPlaceholder: {
+    es: "Ej. Algodón, denim, cuero",
+    en: "e.g. Cotton, denim, leather",
+  },
   imageUrl: {
     es: "URL imagen",
     en: "Image URL",
+  },
+  imageUrlHint: {
+    es: "También podés pegar una URL si preferís no subir una foto.",
+    en: "You can also paste an image URL if you prefer not to upload a photo.",
+  },
+  optionalField: {
+    es: "Opcional",
+    en: "Optional",
+  },
+  analyzeAgain: {
+    es: "Analizar de nuevo",
+    en: "Analyze again",
+  },
+  saveGarment: {
+    es: "Guardar prenda",
+    en: "Save garment",
+  },
+  addGarmentHelp: {
+    es: "Empezá por la imagen y dejá que la IA te ayude con la carga.",
+    en: "Start with the image and let AI help with the entry.",
   },
   allYear: {
     es: "Todo el año",
@@ -246,9 +326,17 @@ export const translations = {
     es: "Categoría: {value}",
     en: "Category: {value}",
   },
+  categoryLabel: {
+    es: "Categoría",
+    en: "Category",
+  },
   season: {
     es: "Temporada: {value}",
     en: "Season: {value}",
+  },
+  seasonLabel: {
+    es: "Temporada",
+    en: "Season",
   },
   delete: {
     es: "Eliminar",
