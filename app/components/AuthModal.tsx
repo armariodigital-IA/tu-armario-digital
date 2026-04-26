@@ -1,5 +1,6 @@
 "use client";
 
+import type { FormEvent } from "react";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -31,7 +32,8 @@ export default function AuthModal({ type, onClose, onSuccess }: AuthModalProps) 
     setTimeout(() => setAnimateError(false), 400);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setError("");
     setSuccess("");
 
@@ -59,30 +61,35 @@ export default function AuthModal({ type, onClose, onSuccess }: AuthModalProps) 
 
     const body =
       type === "login"
-        ? { email, password }
-        : { name, email, password, gender };
+        ? { email: email.trim(), password }
+        : { name: name.trim(), email: email.trim(), password, gender };
 
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(body),
-    });
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(body),
+      });
 
-    const data = await res.json();
-    setLoading(false);
+      const data = await res.json();
 
-    if (res.ok) {
-      if (type === "register") {
-        setSuccess("Cuenta creada con éxito 🎉");
-        setTimeout(() => {
-          window.location.href = "/";
-        }, 1500);
+      if (res.ok) {
+        if (type === "register") {
+          setSuccess("Cuenta creada con éxito 🎉");
+          setTimeout(() => {
+            window.location.href = "/";
+          }, 1500);
+        } else {
+          onSuccess();
+        }
       } else {
-        onSuccess();
+        triggerError(data.error || "Error en el servidor.");
       }
-    } else {
-      triggerError(data.error || "Error en el servidor.");
+    } catch {
+      triggerError("No se pudo conectar con el servidor.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -91,7 +98,8 @@ export default function AuthModal({ type, onClose, onSuccess }: AuthModalProps) 
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div
+      <form
+        onSubmit={handleSubmit}
         className={`bg-white rounded-2xl p-8 w-96 space-y-4 shadow-xl ${
           animateError ? "animate-shake" : ""
         }`}
@@ -179,7 +187,7 @@ export default function AuthModal({ type, onClose, onSuccess }: AuthModalProps) 
         )}
 
         <button
-          onClick={handleSubmit}
+          type="submit"
           disabled={loading}
           className="w-full bg-[#162B4E] text-white py-2 rounded-lg hover:opacity-90 transition"
         >
@@ -191,13 +199,14 @@ export default function AuthModal({ type, onClose, onSuccess }: AuthModalProps) 
         </button>
 
         <button
+          type="button"
           onClick={onClose}
           className="text-sm text-[#162B4E] hover:underline w-full text-center"
         >
           Cancelar
         </button>
-      </div>
-
+      </form>
+ 
       <style jsx>{`
         @keyframes shake {
           25% { transform: translateX(-6px); }
