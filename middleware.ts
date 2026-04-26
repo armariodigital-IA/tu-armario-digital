@@ -1,20 +1,31 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { verifyAuthToken } from "@/lib/auth";
 
 export function middleware(request: NextRequest) {
-  // Obtenemos el token de las cookies
   const token = request.cookies.get("token")?.value;
 
   if (!token) {
-    // Si no hay token, redirige al home
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // Si hay token, permite continuar con la solicitud
-  return NextResponse.next();
+  try {
+    verifyAuthToken(token);
+    return NextResponse.next();
+  } catch {
+    const response = NextResponse.redirect(new URL("/", request.url));
+    response.cookies.set("token", "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      expires: new Date(0),
+      maxAge: 0,
+      path: "/",
+    });
+    return response;
+  }
 }
 
-// Solo protegemos el dashboard
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: ["/dashboard/:path*", "/wardrobe/:path*", "/create-outfit/:path*", "/create-outfit-ai/:path*"],
 };

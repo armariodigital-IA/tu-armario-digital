@@ -10,10 +10,29 @@ import {
   Wind,
 } from "lucide-react";
 
+type User = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+type HourlyForecast = {
+  time: string;
+  temp: number;
+  condition: string;
+};
+
+type WeatherData = {
+  city: string;
+  temp: number;
+  condition: string;
+  hourly?: HourlyForecast[];
+};
+
 export default function Dashboard() {
-  const [user, setUser] = useState<any>(null);
-  const [weather, setWeather] = useState<any>(null);
-  const [hourly, setHourly] = useState<any[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [hourly, setHourly] = useState<HourlyForecast[]>([]);
   const [showMenu, setShowMenu] = useState(false);
   const [outfit, setOutfit] = useState("");
 
@@ -46,7 +65,7 @@ export default function Dashboard() {
       setWeather(data);
 
       const formattedHours =
-        data.hourly?.slice(0, 8).map((h: any) => ({
+        data.hourly?.slice(0, 8).map((h: HourlyForecast) => ({
           time: h.time,
           temp: h.temp,
           condition: h.condition,

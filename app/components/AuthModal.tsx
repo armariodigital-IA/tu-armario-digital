@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
-export default function AuthModal({ type, onClose, onSuccess }: any) {
+type AuthModalProps = {
+  type: "login" | "register";
+  onClose: () => void;
+  onSuccess: () => void;
+};
+
+export default function AuthModal({ type, onClose, onSuccess }: AuthModalProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -70,10 +76,10 @@ export default function AuthModal({ type, onClose, onSuccess }: any) {
       if (type === "register") {
         setSuccess("Cuenta creada con éxito 🎉");
         setTimeout(() => {
-          window.location.href = "/dashboard";
+          window.location.href = "/";
         }, 1500);
       } else {
-        window.location.href = "/dashboard";
+        onSuccess();
       }
     } else {
       triggerError(data.error || "Error en el servidor.");

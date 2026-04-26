@@ -1,8 +1,24 @@
 import { NextResponse } from "next/server";
 
+type WeatherRequest = {
+  lat: number;
+  lon: number;
+};
+
+type ForecastEntry = {
+  dt: number;
+  main: {
+    temp: number;
+  };
+  weather: Array<{
+    main: string;
+    icon: string;
+  }>;
+};
+
 export async function POST(req: Request) {
   try {
-    const body = await req.json().catch(() => null);
+    const body = (await req.json().catch(() => null)) as WeatherRequest | null;
 
     if (!body || typeof body.lat !== "number" || typeof body.lon !== "number") {
       return NextResponse.json(
@@ -33,21 +49,23 @@ export async function POST(req: Request) {
     const forecastData = await forecastRes.json();
 
     // OpenWeather forecast viene cada 3 horas
-    const hourlyFormatted = forecastData.list.slice(0, 8).map((h: any) => {
-  const date = new Date(h.dt * 1000)
+    const hourlyFormatted = (forecastData.list as ForecastEntry[])
+      .slice(0, 8)
+      .map((h) => {
+        const date = new Date(h.dt * 1000);
 
-  let hours = date.getHours()
-  const ampm = hours >= 12 ? "PM" : "AM"
-  hours = hours % 12
-  hours = hours ? hours : 12
+        let hours = date.getHours();
+        const ampm = hours >= 12 ? "PM" : "AM";
+        hours = hours % 12;
+        hours = hours ? hours : 12;
 
-  return {
-    time: `${hours} ${ampm}`,
-    temp: Math.round(h.main.temp),
-    condition: h.weather[0].main,
-    icon: h.weather[0].icon,
-  }
-})
+        return {
+          time: `${hours} ${ampm}`,
+          temp: Math.round(h.main.temp),
+          condition: h.weather[0].main,
+          icon: h.weather[0].icon,
+        };
+      });
 
     return NextResponse.json({
       city: currentData.name,
@@ -59,7 +77,7 @@ export async function POST(req: Request) {
       hourly: hourlyFormatted,
     });
 
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Error procesando clima" },
       { status: 500 }

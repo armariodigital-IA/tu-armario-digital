@@ -3,13 +3,32 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+type WeatherSummary = {
+  city: string;
+  temp: number;
+};
+
+type Garment = {
+  _id: string;
+  name: string;
+  imageUrl: string;
+};
+
+type StructuredOutfit = {
+  top: Garment | null;
+  bottom: Garment | null;
+  shoes: Garment | null;
+  outerwear: Garment | null;
+};
+
 export default function GenerateAIOutfit() {
   const router = useRouter();
 
   const [occasion, setOccasion] = useState("casual");
   const [mood, setMood] = useState("relajado");
-  const [weather, setWeather] = useState<any>(null);
-  const [outfit, setOutfit] = useState<any>(null);
+  const [weather, setWeather] = useState<WeatherSummary | null>(null);
+  const [outfit, setOutfit] = useState<StructuredOutfit | null>(null);
+  const [explanation, setExplanation] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -35,7 +54,7 @@ export default function GenerateAIOutfit() {
     setError("");
     setLoading(true);
 
-    const res = await fetch("/api/generate-ai-outfit", {
+    const res = await fetch("/api/generate-outfit", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -55,6 +74,7 @@ export default function GenerateAIOutfit() {
     }
 
     setOutfit(data.outfit);
+    setExplanation(data.explanation || "");
   };
 
   return (
@@ -114,18 +134,25 @@ export default function GenerateAIOutfit() {
       </div>
 
       {outfit && (
-        <div className="grid md:grid-cols-4 gap-6">
-          {Object.values(outfit)
-            .filter(Boolean)
-            .map((g: any) => (
+        <div className="space-y-6">
+          {explanation && (
+            <p className="text-[#162B4E] text-lg">{explanation}</p>
+          )}
+
+          <div className="grid md:grid-cols-4 gap-6">
+            {Object.values(outfit)
+              .filter((garment): garment is Garment => garment !== null)
+              .map((g) => (
               <div key={g._id} className="bg-white p-4 rounded-2xl shadow-lg">
                 <img
                   src={g.imageUrl}
+                  alt={g.name}
                   className="w-full h-40 object-cover rounded-xl mb-3"
                 />
                 <p className="font-semibold">{g.name}</p>
               </div>
-            ))}
+              ))}
+          </div>
         </div>
       )}
     </main>

@@ -1,13 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { connectDB } from "@/lib/db";
+import { getTokenFromRequest, verifyAuthToken } from "@/lib/auth";
 import { User } from "@/models/User";
-import jwt from "jsonwebtoken";
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
     await connectDB();
 
-    const token = req.headers.get("cookie")?.split("token=")[1];
+    const token = getTokenFromRequest(req);
 
     if (!token) {
       return NextResponse.json(
@@ -16,10 +16,7 @@ export async function GET(req: Request) {
       );
     }
 
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET as string
-    ) as { id: string };
+    const decoded = verifyAuthToken(token);
 
     const user = await User.findById(decoded.id).select("-password");
 

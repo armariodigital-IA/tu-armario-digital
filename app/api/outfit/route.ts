@@ -1,47 +1,72 @@
 import OpenAI from "openai";
+import { NextResponse } from "next/server";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+type OutfitWeatherRequest = {
+  lat: number;
+  lon: number;
+};
+
+function buildFallbackRecommendation(city: string, temp: number) {
+  if (temp >= 24) {
+    return `${city}: remera liviana, pantalón fresco y zapatillas cómodas. Va limpio, respirable y perfecto para el calor.`;
+  }
+
+  if (temp <= 14) {
+    return `${city}: sumá abrigo, capa superior sólida, pantalón largo y calzado cerrado. Queda prolijo y te cubre bien del frío.`;
+  }
+
+  return `${city}: andá con capas livianas, parte superior versátil, pantalón largo y zapatillas. Es un equilibrio prolijo para media estación.`;
+}
 
 export async function POST(req: Request) {
   try {
-    // 📍 Recibimos lat y lon desde el frontend
-    const { lat, lon } = await req.json();
+    const body = (await req.json().catch(() => null)) as OutfitWeatherRequest | null;
 
-    console.log("LAT:", lat);
-    console.log("LON:", lon);
+    if (!body || typeof body.lat !== "number" || typeof body.lon !== "number") {
+      return NextResponse.json(
+        { error: "Faltan coordenadas válidas" },
+        { status: 400 }
+      );
+    }
 
-    console.log("API KEY:", process.env.OPENWEATHER_KEY);
-    // 🌤 Obtener clima real
-    const weatherRes = await fetch(
-      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${process.env.OPENWEATHER_KEY}`
-    );
-
-    const weatherData = await weatherRes.json();
-    console.log("WEATHER RAW:", weatherData);
-
-    const temperatura = weatherData?.main?.temp;
-
-    // 🏙 Obtener ciudad real con reverse geocoding
-    const geoRes = await fetch(
-      `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${process.env.OPENWEATHER_KEY}`
-    );
-
-    const geoData = await geoRes.json();
-    console.log("GEO RAW:", geoData);
-
-    const ciudad = geoData?.[0]?.name;
-
-    console.log("Ciudad:", ciudad);
-    console.log("Temperatura:", temperatura);
-
-    if (!temperatura || !ciudad) {
-      return Response.json(
-        { error: "Error obteniendo clima o ciudad" },
+    if (!process.env.OPENWEATHER_KEY) {
+      return NextResponse.json(
+        { error: "OPENWEATHER_KEY no está configurada" },
         { status: 500 }
       );
     }
+
+    const weatherRes = await fetch(
+      `https://api.openweathermap.org/data/2.5/weather?lat=${body.lat}&lon=${body.lon}&units=metric&appid=${process.env.OPENWEATHER_KEY}`
+    );
+
+    if (!weatherRes.ok) {
+      return NextResponse.json(
+        { error: "No se pudo obtener el clima actual" },
+        { status: 502 }
+      );
+    }
+
+    const weatherData = await weatherRes.json();
+    const city = weatherData?.name;
+    const temperature = weatherData?.main?.temp;
+
+    if (typeof city !== "string" || typeof temperature !== "number") {
+      return NextResponse.json(
+        { error: "Respuesta inválida del servicio de clima" },
+        { status: 502 }
+      );
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json({
+        outfit: buildFallbackRecommendation(city, temperature),
+      });
+    }
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -49,22 +74,26 @@ export async function POST(req: Request) {
         {
           role: "system",
           content:
-            "Sos el hermano mayor con buen gusto. Estilo masculino, minimalista, moderno. Habla corto, claro y con personalidad joven. Nada de explicaciones largas. Decí directamente qué ponerse y por qué funciona. Tono canchero pero elegante.",
+            "Sos un asesor de estilo masculino. Respondé en español, en una sola frase corta, con una recomendación concreta y elegante.",
         },
         {
           role: "user",
-          content: `Estoy en ${ciudad}. Hace ${temperatura} grados. Decime el outfit ideal para esta temperatura y mencioná la ciudad al inicio.`,
+          content: `Estoy en ${city} y hacen ${Math.round(
+            temperature
+          )} grados. Decime qué ponerme hoy.`,
         },
       ],
     });
 
-    return Response.json({
-      outfit: response.choices[0].message.content,
+    return NextResponse.json({
+      outfit:
+        response.choices[0]?.message?.content?.trim() ??
+        buildFallbackRecommendation(city, temperature),
     });
   } catch (error) {
-    console.error("ERROR BACKEND:", error);
-    return Response.json(
-      { error: "Error generando outfit" },
+    console.error(error);
+    return NextResponse.json(
+      { error: "Error generando recomendación" },
       { status: 500 }
     );
   }

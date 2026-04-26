@@ -24,9 +24,9 @@ export default function Register() {
     const data = await res.json();
 
     if (res.ok) {
-  alert("Cuenta creada correctamente. Ahora puedes iniciar sesión.");
-  router.push("/login");
-} else {
+      alert("Cuenta creada correctamente. Ahora puedes iniciar sesión.");
+      router.push("/");
+    } else {
       alert(data.error);
     }
   };

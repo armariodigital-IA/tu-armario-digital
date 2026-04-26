@@ -1,32 +1,48 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Heart, Plus, X } from "lucide-react";
+
+type GarmentCategory = "top" | "bottom" | "shoes" | "outerwear";
+type GarmentSeason = "all" | "summer" | "winter";
+
+type Garment = {
+  _id: string;
+  name: string;
+  category: GarmentCategory;
+  color: string;
+  season: GarmentSeason;
+  imageUrl: string;
+};
 
 export default function Wardrobe() {
   const router = useRouter();
 
-  const [garments, setGarments] = useState<any[]>([]);
+  const [garments, setGarments] = useState<Garment[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedGarment, setSelectedGarment] = useState<any>(null);
+  const [selectedGarment, setSelectedGarment] = useState<Garment | null>(null);
   const [error, setError] = useState("");
 
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("top");
+  const [category, setCategory] = useState<GarmentCategory>("top");
   const [color, setColor] = useState("");
-  const [season, setSeason] = useState("all");
+  const [season, setSeason] = useState<GarmentSeason>("all");
   const [imageUrl, setImageUrl] = useState("");
 
   const fetchGarments = async () => {
     const res = await fetch("/api/wardrobe", { credentials: "include" });
     if (!res.ok) return;
     const data = await res.json();
-    setGarments(Array.isArray(data) ? data : []);
+    setGarments(Array.isArray(data) ? (data as Garment[]) : []);
   };
 
   useEffect(() => {
-    fetchGarments();
+    const loadGarments = async () => {
+      await fetchGarments();
+    };
+
+    void loadGarments();
   }, []);
 
   const addGarment = async () => {
@@ -115,6 +131,7 @@ export default function Wardrobe() {
             <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
               <img
                 src={g.imageUrl}
+                alt={g.name}
                 className="max-h-full max-w-full object-contain"
               />
             </div>
@@ -189,8 +206,8 @@ export default function Wardrobe() {
                 type="file"
                 accept="image/*"
                 capture="environment"
-                onChange={(e: any) => {
-                  const file = e.target.files[0];
+                onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                  const file = e.target.files?.[0];
                   if (file) {
                     const reader = new FileReader();
                     reader.onloadend = () => {
@@ -234,6 +251,7 @@ export default function Wardrobe() {
             <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center mb-6">
               <img
                 src={selectedGarment.imageUrl}
+                alt={selectedGarment.name}
                 className="max-h-full max-w-full object-contain"
               />
             </div>
