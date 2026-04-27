@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Sun,
   Cloud,
@@ -20,6 +20,8 @@ type User = {
   gender?: string;
   styles?: string[];
 };
+
+type StyleModalMode = "closed" | "required" | "edit";
 
 type HourlyForecast = {
   time: string;
@@ -120,7 +122,7 @@ export default function Dashboard() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [hourly, setHourly] = useState<HourlyForecast[]>([]);
   const [showMenu, setShowMenu] = useState(false);
-  const [showStylesModal, setShowStylesModal] = useState(false);
+  const [styleModalMode, setStyleModalMode] = useState<StyleModalMode>("closed");
   const [accountError, setAccountError] = useState("");
   const [outfit, setOutfit] = useState("");
   const [isLoadingOutfit, setIsLoadingOutfit] = useState(true);
@@ -133,6 +135,7 @@ export default function Dashboard() {
     () => t("recommendationLoadError"),
     [t]
   );
+  const hasOpenedRequiredStylesRef = useRef(false);
 
   /* ================= USER ================= */
   useEffect(() => {
@@ -140,8 +143,9 @@ export default function Dashboard() {
   .then(res => res.json())
   .then((data: User) => {
     setUser(data);
-    if (!data.styles || data.styles.length === 0) {
-      setShowStylesModal(true);
+    if ((!data.styles || data.styles.length === 0) && !hasOpenedRequiredStylesRef.current) {
+      hasOpenedRequiredStylesRef.current = true;
+      setStyleModalMode("required");
     }
   });
   }, []);
@@ -262,6 +266,7 @@ export default function Dashboard() {
 
     const data = (await res.json()) as User;
     setUser(data);
+    setStyleModalMode("closed");
   };
 
   /* ================= FRASES DINÁMICAS PRO ================= */
@@ -310,14 +315,14 @@ export default function Dashboard() {
   return (
     <>
     <StylePreferencesModal
-      isOpen={showStylesModal}
+      isOpen={styleModalMode !== "closed"}
       gender={user?.gender}
       initialStyles={user?.styles ?? []}
-      onClose={() => setShowStylesModal(false)}
+      onClose={() => setStyleModalMode("closed")}
       onSave={saveStyles}
-      mandatory={!user?.styles || user.styles.length === 0}
-      title={!user?.styles || user.styles.length === 0 ? undefined : t("styleEditTitle")}
-      description={!user?.styles || user.styles.length === 0 ? undefined : t("styleEditDescription")}
+      mandatory={styleModalMode === "required"}
+      title={styleModalMode === "edit" ? t("styleEditTitle") : undefined}
+      description={styleModalMode === "edit" ? t("styleEditDescription") : undefined}
     />
     <main className="relative min-h-screen bg-[#F5EFE3] px-10 py-8 overflow-hidden">
 
@@ -362,7 +367,7 @@ export default function Dashboard() {
                   <button
                     type="button"
                     onClick={() => {
-                      setShowStylesModal(true);
+                      setStyleModalMode("edit");
                       setShowMenu(false);
                     }}
                     className="text-sm font-medium text-[#162B4E] hover:opacity-70"

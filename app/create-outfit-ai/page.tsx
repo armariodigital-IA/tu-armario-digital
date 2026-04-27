@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LoaderCircle, Sparkles } from "lucide-react";
+import { AlertCircle, CheckCircle2, LoaderCircle, Sparkles, Shirt } from "lucide-react";
 import { useLanguage } from "@/app/providers/LanguageProvider";
 import StylePreferencesModal from "@/app/components/StylePreferencesModal";
 
@@ -13,6 +13,19 @@ type User = {
   email: string;
   gender?: string;
   styles?: string[];
+};
+
+type Garment = {
+  _id: string;
+  category: "top" | "bottom" | "shoes" | "outerwear";
+};
+
+type StyleModalMode = "closed" | "required";
+
+type WardrobeRequirement = {
+  tops: number;
+  bottoms: number;
+  shoes: number;
 };
 
 type WeatherSummary = {
@@ -72,16 +85,37 @@ export default function GenerateAIOutfit() {
   const [palette, setPalette] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showStylesModal, setShowStylesModal] = useState(false);
+  const [styleModalMode, setStyleModalMode] = useState<StyleModalMode>("closed");
+  const [wardrobeRequirement, setWardrobeRequirement] = useState<WardrobeRequirement>({
+    tops: 0,
+    bottoms: 0,
+    shoes: 0,
+  });
+  const hasOpenedRequiredStylesRef = useRef(false);
 
   useEffect(() => {
     fetch("/api/me", { credentials: "include" })
       .then((res) => res.json())
       .then((data: User) => {
         setUser(data);
-        if (!data.styles || data.styles.length === 0) {
-          setShowStylesModal(true);
+        if ((!data.styles || data.styles.length === 0) && !hasOpenedRequiredStylesRef.current) {
+          hasOpenedRequiredStylesRef.current = true;
+          setStyleModalMode("required");
         }
+      })
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/wardrobe", { credentials: "include" })
+      .then((res) => res.json())
+      .then((data: Garment[]) => {
+        const garments = Array.isArray(data) ? data : [];
+        setWardrobeRequirement({
+          tops: garments.filter((garment) => garment.category === "top").length,
+          bottoms: garments.filter((garment) => garment.category === "bottom").length,
+          shoes: garments.filter((garment) => garment.category === "shoes").length,
+        });
       })
       .catch(() => undefined);
   }, []);
@@ -136,12 +170,23 @@ export default function GenerateAIOutfit() {
 
     const data = (await res.json()) as User;
     setUser(data);
+    setStyleModalMode("closed");
   };
+
+  const meetsWardrobeMinimum =
+    wardrobeRequirement.tops >= 5 &&
+    wardrobeRequirement.bottoms >= 4 &&
+    wardrobeRequirement.shoes >= 2;
 
   const generate = async () => {
     if (!user?.styles || user.styles.length === 0) {
-      setShowStylesModal(true);
+      setStyleModalMode("required");
       setError(t("saveFirstStyles"));
+      return;
+    }
+
+    if (!meetsWardrobeMinimum) {
+      setError(t("wardrobeMinimumError"));
       return;
     }
 
@@ -193,12 +238,12 @@ export default function GenerateAIOutfit() {
   return (
     <>
       <StylePreferencesModal
-        isOpen={showStylesModal}
+        isOpen={styleModalMode !== "closed"}
         gender={user?.gender}
         initialStyles={user?.styles ?? []}
-        onClose={() => setShowStylesModal(false)}
+        onClose={() => setStyleModalMode("closed")}
         onSave={handleSaveStyles}
-        mandatory={!user?.styles || user.styles.length === 0}
+        mandatory={styleModalMode === "required"}
       />
 
       <main className="min-h-screen bg-[#F5EFE3] px-5 py-6 text-[#162B4E] sm:px-8 sm:py-10">
@@ -256,6 +301,52 @@ export default function GenerateAIOutfit() {
               </div>
 
               <div className="grid gap-6">
+                <div className="rounded-[26px] border border-[#E7DDCB] bg-[linear-gradient(135deg,#FFFDF8,#F8F1E4)] p-5 shadow-sm">
+                  <div className="flex items-start gap-4">
+                    <div className="rounded-2xl bg-white p-3 text-[#162B4E] shadow-sm">
+                      <Shirt size={20} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-[#162B4E]">
+                        {t("wardrobeBannerTitle")}
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-[#4B5F82]">
+                        {t("wardrobeBannerBody")}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  className={`rounded-[26px] border p-5 ${
+                    meetsWardrobeMinimum
+                      ? "border-emerald-200 bg-emerald-50/80"
+                      : "border-amber-200 bg-amber-50/80"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    {meetsWardrobeMinimum ? (
+                      <CheckCircle2 className="mt-0.5 text-emerald-600" size={20} />
+                    ) : (
+                      <AlertCircle className="mt-0.5 text-amber-600" size={20} />
+                    )}
+                    <div>
+                      <p className="text-sm font-semibold text-[#162B4E]">
+                        {meetsWardrobeMinimum
+                          ? t("wardrobeMinimumMet")
+                          : t("wardrobeMinimumTitle")}
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-[#4B5F82]">
+                        {t("wardrobeMinimumHint", {
+                          tops: wardrobeRequirement.tops,
+                          bottoms: wardrobeRequirement.bottoms,
+                          shoes: wardrobeRequirement.shoes,
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid gap-3">
                   <label className="text-sm font-semibold text-[#162B4E]">
                     {t("occasionLabel")}
@@ -364,7 +455,7 @@ export default function GenerateAIOutfit() {
                 <button
                   type="button"
                   onClick={() => void generate()}
-                  disabled={loading}
+                  disabled={loading || !meetsWardrobeMinimum}
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#162B4E] px-6 py-4 text-base font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {loading && <LoaderCircle className="animate-spin" size={18} />}

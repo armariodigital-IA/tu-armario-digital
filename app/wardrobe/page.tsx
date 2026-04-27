@@ -102,6 +102,7 @@ export default function Wardrobe() {
   const [selectedGarment, setSelectedGarment] = useState<Garment | null>(null);
   const [garmentPendingDelete, setGarmentPendingDelete] = useState<Garment | null>(null);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [activeCategoryView, setActiveCategoryView] = useState<GarmentCategory | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
   const [analysisMessage, setAnalysisMessage] = useState("");
@@ -179,6 +180,12 @@ export default function Wardrobe() {
   const filteredGarments = showFavoritesOnly
     ? garments.filter((garment) => garment.isFavorite)
     : garments;
+  const categorySections = categoryOptions
+    .map((option) => ({
+      ...option,
+      items: filteredGarments.filter((garment) => garment.category === option.value),
+    }))
+    .filter((section) => section.items.length > 0);
 
   const resetGarmentForm = () => {
     setShowAddModal(false);
@@ -471,6 +478,22 @@ export default function Wardrobe() {
           </div>
         )}
 
+        <div className="mb-8 rounded-[28px] border border-[#E7DDCB] bg-[linear-gradient(135deg,#FFFDF8,#F7EFDF)] p-5 shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="rounded-2xl bg-white p-3 text-[#162B4E] shadow-sm">
+              <Sparkles size={20} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-[#162B4E]">
+                {t("wardrobeBannerTitle")}
+              </p>
+              <p className="mt-1 text-sm leading-6 text-[#4B5F82]">
+                {t("wardrobeBannerBody")}
+              </p>
+            </div>
+          </div>
+        </div>
+
         {filteredGarments.length === 0 ? (
           <div className="flex min-h-[360px] items-center justify-center rounded-[32px] border border-dashed border-[#d6cfbf] bg-[#FCFAF6] px-6 text-center shadow-[0_24px_80px_rgba(15,23,42,0.06)]">
             <div className="max-w-md">
@@ -483,73 +506,90 @@ export default function Wardrobe() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-            {filteredGarments.map((garment) => {
-              const normalizedGarment = normalizeGarment(garment);
-
-              return (
-                <article
-                  key={normalizedGarment._id}
-                  onClick={() => openGarmentDetail(normalizedGarment)}
-                  className="group flex h-full min-h-[360px] cursor-pointer flex-col overflow-hidden rounded-[28px] border border-white/70 bg-[#FCFAF6] shadow-[0_24px_60px_rgba(15,23,42,0.08)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_30px_90px_rgba(15,23,42,0.12)]"
-                >
-                  <div className="relative aspect-square overflow-hidden bg-[radial-gradient(circle_at_top,#fffaf0,transparent_70%)]">
-                    <img
-                      src={normalizedGarment.imageUrl}
-                      alt={normalizedGarment.name}
-                      className="h-full w-full object-contain p-5"
-                    />
-
-                    <button
-                      type="button"
-                      aria-label={t("favorite")}
-                      title={t("favorite")}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        void toggleFavorite(normalizedGarment);
-                      }}
-                      className={`absolute right-4 top-4 inline-flex h-11 w-11 items-center justify-center rounded-full border bg-white/92 shadow-sm backdrop-blur transition-all duration-200 ${
-                        normalizedGarment.isFavorite
-                          ? "scale-105 border-rose-200 text-red-500 shadow-lg"
-                          : "border-[#E3DDD2] text-[#6E7F9F] hover:scale-105 hover:text-red-500"
-                      }`}
-                    >
-                      {togglingFavoriteId === normalizedGarment._id ? (
-                        <LoaderCircle className="animate-spin" size={18} />
-                      ) : (
-                        <Heart
-                          className={normalizedGarment.isFavorite ? "fill-current text-red-500" : ""}
-                          size={18}
-                        />
-                      )}
-                    </button>
+          <div className="space-y-8">
+            {categorySections.map((section) => (
+              <section key={section.value} className="space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-semibold text-[#162B4E]">
+                      {section.label}
+                    </h2>
+                    <p className="mt-1 text-sm text-[#4B5F82]">
+                      {t("categoryItemsCount", { count: section.items.length })}
+                    </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveCategoryView(section.value)}
+                    className="rounded-full border border-[#D9D2C4] bg-white px-4 py-2 text-sm font-semibold text-[#162B4E] transition hover:border-[#162B4E] hover:bg-[#FCFAF6]"
+                  >
+                    {t("viewAll")}
+                  </button>
+                </div>
 
-                  <div className="flex flex-1 flex-col justify-between gap-4 p-5">
-                    <div className="space-y-2">
-                      <h2 className="line-clamp-2 text-lg font-semibold text-[#162B4E]">
-                        {normalizedGarment.name}
-                      </h2>
-                      <p className="text-sm font-medium uppercase tracking-[0.18em] text-[#6E7F9F]">
-                        {getCategoryLabel(normalizedGarment.category)}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="rounded-full bg-[#EEF3FB] px-3 py-1.5 text-sm font-medium text-[#27406F]">
-                        {normalizedGarment.color}
-                      </span>
-                      <span className="text-sm font-medium text-[#6E7F9F]">
-                        {t("details")}
-                      </span>
-                    </div>
+                <div className="overflow-x-auto pb-2">
+                  <div className="flex gap-5">
+                    {section.items.map((garment) => (
+                      <GarmentCard
+                        key={garment._id}
+                        garment={normalizeGarment(garment)}
+                        onOpen={openGarmentDetail}
+                        onToggleFavorite={toggleFavorite}
+                        togglingFavoriteId={togglingFavoriteId}
+                        getCategoryLabel={getCategoryLabel}
+                        t={t}
+                        compact
+                      />
+                    ))}
                   </div>
-                </article>
-              );
-            })}
+                </div>
+              </section>
+            ))}
           </div>
         )}
       </div>
+
+      {activeCategoryView && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/45 px-4 py-6 backdrop-blur-sm">
+          <div className="relative max-h-[92vh] w-[min(1180px,100%)] overflow-y-auto rounded-[32px] bg-[#FCFAF6] p-6 shadow-2xl sm:p-8">
+            <button
+              type="button"
+              onClick={() => setActiveCategoryView(null)}
+              className="absolute right-5 top-5 rounded-full bg-white p-2 text-[#162B4E] shadow-md transition hover:scale-105"
+            >
+              <X />
+            </button>
+
+            <div className="mb-8 pr-10">
+              <p className="text-sm font-medium uppercase tracking-[0.18em] text-[#6E7F9F]">
+                {t("myWardrobe")}
+              </p>
+              <h2 className="mt-2 text-3xl font-semibold text-[#162B4E]">
+                {getCategoryLabel(activeCategoryView)}
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+              {filteredGarments
+                .filter((garment) => garment.category === activeCategoryView)
+                .map((garment) => (
+                  <GarmentCard
+                    key={garment._id}
+                    garment={normalizeGarment(garment)}
+                    onOpen={(nextGarment) => {
+                      setActiveCategoryView(null);
+                      openGarmentDetail(nextGarment);
+                    }}
+                    onToggleFavorite={toggleFavorite}
+                    togglingFavoriteId={togglingFavoriteId}
+                    getCategoryLabel={getCategoryLabel}
+                    t={t}
+                  />
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6 backdrop-blur-sm">
@@ -968,6 +1008,83 @@ function IconButton({
     >
       {loading ? <LoaderCircle className="animate-spin" size={small ? 17 : 18} /> : children}
     </button>
+  );
+}
+
+function GarmentCard({
+  garment,
+  onOpen,
+  onToggleFavorite,
+  togglingFavoriteId,
+  getCategoryLabel,
+  t,
+  compact = false,
+}: {
+  garment: Garment;
+  onOpen: (garment: Garment) => void;
+  onToggleFavorite: (garment: Garment) => Promise<void>;
+  togglingFavoriteId: string | null;
+  getCategoryLabel: (value: GarmentCategory) => string;
+  t: (key: TranslationKey, params?: Record<string, string | number>) => string;
+  compact?: boolean;
+}) {
+  return (
+    <article
+      onClick={() => onOpen(garment)}
+      className={`group flex cursor-pointer flex-col overflow-hidden rounded-[28px] border border-white/70 bg-[#FCFAF6] shadow-[0_24px_60px_rgba(15,23,42,0.08)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_30px_90px_rgba(15,23,42,0.12)] ${
+        compact ? "min-h-[320px] w-[260px] shrink-0" : "h-full min-h-[360px]"
+      }`}
+    >
+      <div className="relative aspect-square overflow-hidden bg-[radial-gradient(circle_at_top,#fffaf0,transparent_70%)]">
+        <img
+          src={garment.imageUrl}
+          alt={garment.name}
+          className="h-full w-full object-contain p-5"
+        />
+
+        <button
+          type="button"
+          aria-label={t("favorite")}
+          title={t("favorite")}
+          onClick={(event) => {
+            event.stopPropagation();
+            void onToggleFavorite(garment);
+          }}
+          className={`absolute right-4 top-4 inline-flex h-11 w-11 items-center justify-center rounded-full border bg-white/92 shadow-sm backdrop-blur transition-all duration-200 ${
+            garment.isFavorite
+              ? "scale-105 border-rose-200 text-red-500 shadow-lg"
+              : "border-[#E3DDD2] text-[#6E7F9F] hover:scale-105 hover:text-red-500"
+          }`}
+        >
+          {togglingFavoriteId === garment._id ? (
+            <LoaderCircle className="animate-spin" size={18} />
+          ) : (
+            <Heart
+              className={garment.isFavorite ? "fill-current text-red-500" : ""}
+              size={18}
+            />
+          )}
+        </button>
+      </div>
+
+      <div className="flex flex-1 flex-col justify-between gap-4 p-5">
+        <div className="space-y-2">
+          <h2 className="line-clamp-2 text-lg font-semibold text-[#162B4E]">
+            {garment.name}
+          </h2>
+          <p className="text-sm font-medium uppercase tracking-[0.18em] text-[#6E7F9F]">
+            {getCategoryLabel(garment.category)}
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <span className="rounded-full bg-[#EEF3FB] px-3 py-1.5 text-sm font-medium text-[#27406F]">
+            {garment.color}
+          </span>
+          <span className="text-sm font-medium text-[#6E7F9F]">{t("details")}</span>
+        </div>
+      </div>
+    </article>
   );
 }
 

@@ -682,6 +682,98 @@ export const translations = {
     es: "Guardá tus estilos primero para activar tu stylist personalizado.",
     en: "Save your styles first to activate your personalized stylist.",
   },
+  onboardingWelcomeTitle: {
+    es: "Bienvenido a la app",
+    en: "Welcome to the app",
+  },
+  onboardingWelcomeBody: {
+    es: "Tu armario digital, el clima y tu estilo ahora trabajan juntos para ayudarte a vestirte mejor.",
+    en: "Your digital wardrobe, the weather, and your style now work together to help you dress better.",
+  },
+  onboardingAiTitle: {
+    es: "Creamos outfits personalizados con IA",
+    en: "We create personalized outfits with AI",
+  },
+  onboardingAiBody: {
+    es: "No queremos recomendaciones aleatorias: buscamos propuestas usables, coherentes y pensadas para vos.",
+    en: "We’re not aiming for random recommendations: we want looks that are wearable, coherent, and tailored to you.",
+  },
+  onboardingStyleTitle: {
+    es: "Primero necesitamos conocer tu estilo",
+    en: "First we need to know your style",
+  },
+  onboardingStyleBody: {
+    es: "Elegí varias estéticas que te representen. Vamos a combinarlas solo cuando sean compatibles.",
+    en: "Choose the aesthetics that represent you. We’ll only combine them when they’re compatible.",
+  },
+  continue: {
+    es: "Continuar",
+    en: "Continue",
+  },
+  selectYourStylesTitle: {
+    es: "Elegí tus estilos",
+    en: "Choose your styles",
+  },
+  selectYourStylesBody: {
+    es: "Podés elegir varios. Tu stylist va a priorizar lo que mejor combine contigo.",
+    en: "You can choose several. Your stylist will prioritize what works best together for you.",
+  },
+  viewAll: {
+    es: "Ver todo",
+    en: "View all",
+  },
+  categoryItemsCount: {
+    es: "{count} prendas en esta categoría",
+    en: "{count} items in this category",
+  },
+  wardrobeBannerTitle: {
+    es: "Mientras más ropa agregues, mejores combinaciones puede crear la IA.",
+    en: "The more clothing you add, the better the AI can build combinations.",
+  },
+  wardrobeBannerBody: {
+    es: "Mientras más ropa agregues, la IA podrá crear outfits más variados y personalizados.",
+    en: "The more clothing you add, the more varied and personalized the AI outfits can become.",
+  },
+  wardrobeMinimumTitle: {
+    es: "Todavía necesitás más prendas para activar la creación con IA.",
+    en: "You still need more garments to unlock AI outfit creation.",
+  },
+  wardrobeMinimumHint: {
+    es: "Mínimo recomendado: 5 tops, 4 bottoms y 2 pares de zapatos. Ahora tenés {tops} tops, {bottoms} bottoms y {shoes} zapatos.",
+    en: "Recommended minimum: 5 tops, 4 bottoms, and 2 pairs of shoes. Right now you have {tops} tops, {bottoms} bottoms, and {shoes} shoes.",
+  },
+  wardrobeMinimumMet: {
+    es: "Tu armario ya tiene una base suficiente para generar outfits con IA.",
+    en: "Your wardrobe already has a strong enough base to generate AI outfits.",
+  },
+  wardrobeMinimumError: {
+    es: "Agregá al menos 5 tops, 4 bottoms y 2 pares de zapatos para generar outfits con IA.",
+    en: "Add at least 5 tops, 4 bottoms, and 2 pairs of shoes before generating AI outfits.",
+  },
+  createOutfitChooserHint: {
+    es: "Elegí entre construir tu look prenda por prenda o dejar que tu stylist con IA proponga una combinación completa.",
+    en: "Choose between building your look garment by garment or letting your AI stylist propose a complete combination.",
+  },
+  manualOutfitTag1: {
+    es: "Control total",
+    en: "Full control",
+  },
+  manualOutfitTag2: {
+    es: "Tu armario real",
+    en: "Your real wardrobe",
+  },
+  aiOutfitTag1: {
+    es: "IA personalizada",
+    en: "Personalized AI",
+  },
+  aiOutfitTag2: {
+    es: "Clima + estilo",
+    en: "Weather + style",
+  },
+  aiOutfitPremiumHint: {
+    es: "Pensado para sentirse como un stylist personal, no como un generador aleatorio.",
+    en: "Designed to feel like a personal stylist, not a random generator.",
+  },
 } satisfies Record<string, TranslationValue>;
 
 export type TranslationKey = keyof typeof translations;
