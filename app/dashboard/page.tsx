@@ -11,11 +11,14 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/app/providers/LanguageProvider";
 import { languageLabels, type Language } from "@/app/i18n";
+import StylePreferencesModal from "@/app/components/StylePreferencesModal";
 
 type User = {
   id: string;
   name: string;
   email: string;
+  gender?: string;
+  styles?: string[];
 };
 
 type HourlyForecast = {
@@ -75,8 +78,10 @@ function buildFallbackHourlyForecast(
 
 function translateWeatherCondition(condition: string, language: Language) {
   const normalizedCondition = condition.toLowerCase();
+  const translationKey =
+    normalizedCondition as keyof typeof weatherConditionTranslations;
   return (
-    weatherConditionTranslations[normalizedCondition]?.[language] ?? condition
+    weatherConditionTranslations[translationKey]?.[language] ?? condition
   );
 }
 
@@ -115,6 +120,8 @@ export default function Dashboard() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [hourly, setHourly] = useState<HourlyForecast[]>([]);
   const [showMenu, setShowMenu] = useState(false);
+  const [showStylesModal, setShowStylesModal] = useState(false);
+  const [accountError, setAccountError] = useState("");
   const [outfit, setOutfit] = useState("");
   const [isLoadingOutfit, setIsLoadingOutfit] = useState(true);
 
@@ -131,7 +138,12 @@ export default function Dashboard() {
   useEffect(() => {
     fetch("/api/me", { credentials: "include" })
   .then(res => res.json())
-  .then(data => setUser(data));
+  .then((data: User) => {
+    setUser(data);
+    if (!data.styles || data.styles.length === 0) {
+      setShowStylesModal(true);
+    }
+  });
   }, []);
 
   /* ================= OUTFIT Y CLIMA ================= */
@@ -233,6 +245,25 @@ export default function Dashboard() {
   const ButtonStyle =
     "px-6 py-2 rounded-xl bg-[#162B4E] text-white shadow-md hover:scale-105 active:scale-95 transition-all duration-300";
 
+  const saveStyles = async (styles: string[]) => {
+    setAccountError("");
+
+    const res = await fetch("/api/me", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ styles }),
+    });
+
+    if (!res.ok) {
+      setAccountError(t("styleSaveError"));
+      throw new Error(t("styleSaveError"));
+    }
+
+    const data = (await res.json()) as User;
+    setUser(data);
+  };
+
   /* ================= FRASES DINÁMICAS PRO ================= */
 
   // Generar primera frase
@@ -277,6 +308,17 @@ export default function Dashboard() {
   }, [dashboardQuestions]);
 
   return (
+    <>
+    <StylePreferencesModal
+      isOpen={showStylesModal}
+      gender={user?.gender}
+      initialStyles={user?.styles ?? []}
+      onClose={() => setShowStylesModal(false)}
+      onSave={saveStyles}
+      mandatory={!user?.styles || user.styles.length === 0}
+      title={!user?.styles || user.styles.length === 0 ? undefined : t("styleEditTitle")}
+      description={!user?.styles || user.styles.length === 0 ? undefined : t("styleEditDescription")}
+    />
     <main className="relative min-h-screen bg-[#F5EFE3] px-10 py-8 overflow-hidden">
 
       {/* FONDO */}
@@ -311,7 +353,41 @@ export default function Dashboard() {
           </button>
 
           {showMenu && (
-            <div className="absolute right-0 mt-3 min-w-[200px] bg-white shadow-xl rounded-2xl p-4 space-y-4">
+            <div className="absolute right-0 mt-3 min-w-[280px] bg-white shadow-xl rounded-2xl p-4 space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#162B4E]/60">
+                    {t("myStyles")}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowStylesModal(true);
+                      setShowMenu(false);
+                    }}
+                    className="text-sm font-medium text-[#162B4E] hover:opacity-70"
+                  >
+                    {t("editStyles")}
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {user?.styles && user.styles.length > 0 ? (
+                    user.styles.map((style) => (
+                      <span
+                        key={style}
+                        className="rounded-full bg-[#F5EFE3] px-3 py-1.5 text-xs font-medium text-[#162B4E]"
+                      >
+                        {style.replace(/-/g, " ")}
+                      </span>
+                    ))
+                  ) : (
+                    <p className="text-sm text-[#4B5F82]">{t("noStylesYet")}</p>
+                  )}
+                </div>
+                {accountError && (
+                  <p className="text-sm font-medium text-red-600">{accountError}</p>
+                )}
+              </div>
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#162B4E]/60">
                   {t("language")}
@@ -461,5 +537,6 @@ export default function Dashboard() {
       </div>
 
     </main>
+    </>
   );
 }

@@ -370,10 +370,6 @@ export const translations = {
     es: "Guardar cambios",
     en: "Save changes",
   },
-  cancel: {
-    es: "Cancelar",
-    en: "Cancel",
-  },
   details: {
     es: "Detalles",
     en: "Details",
@@ -501,6 +497,190 @@ export const translations = {
   password: {
     es: "Password",
     en: "Password",
+  },
+  styleOnboardingEyebrow: {
+    es: "Personalizá tu stylist",
+    en: "Personalize your stylist",
+  },
+  styleOnboardingTitle: {
+    es: "Elegí los estilos que más te representan",
+    en: "Choose the styles that feel most like you",
+  },
+  styleOnboardingDescription: {
+    es: "Tu asistente de outfits va a usar estas estéticas como base y aprender de ellas con el tiempo.",
+    en: "Your outfit assistant will use these aesthetics as its foundation and learn from them over time.",
+  },
+  stylesSelectedCount: {
+    es: "{count} estilos seleccionados",
+    en: "{count} styles selected",
+  },
+  stylesMultiSelectHint: {
+    es: "Podés elegir más de uno. Vamos a priorizar combinaciones compatibles.",
+    en: "You can choose more than one. We’ll prioritize compatible combinations.",
+  },
+  styleOnboardingFooterTitle: {
+    es: "Esto entrena a tu stylist desde el día uno",
+    en: "This trains your stylist from day one",
+  },
+  styleOnboardingFooterDescription: {
+    es: "Después podés editar tus estilos cuando quieras desde Account > My Styles.",
+    en: "You can edit your styles anytime later from Account > My Styles.",
+  },
+  savingStyles: {
+    es: "Guardando estilos...",
+    en: "Saving styles...",
+  },
+  confirmStyles: {
+    es: "Confirmar estilos",
+    en: "Confirm styles",
+  },
+  myStyles: {
+    es: "Mis estilos",
+    en: "My Styles",
+  },
+  editStyles: {
+    es: "Editar estilos",
+    en: "Edit styles",
+  },
+  noStylesYet: {
+    es: "Todavía no elegiste estilos.",
+    en: "You haven't chosen styles yet.",
+  },
+  styleSaveError: {
+    es: "No se pudieron guardar tus estilos.",
+    en: "Couldn't save your styles.",
+  },
+  styleEditTitle: {
+    es: "Actualizá tu selección de estilos",
+    en: "Update your style selection",
+  },
+  styleEditDescription: {
+    es: "Ajustá las estéticas que querés que priorice tu stylist.",
+    en: "Adjust the aesthetics you want your stylist to prioritize.",
+  },
+  backToHome: {
+    es: "Volver al inicio",
+    en: "Back to Home",
+  },
+  occasionLabel: {
+    es: "Ocasión",
+    en: "Occasion",
+  },
+  timeOfDay: {
+    es: "Momento del día",
+    en: "Time of day",
+  },
+  describeLookToday: {
+    es: "Describí cómo te querés ver hoy...",
+    en: "Describe how you want to look today...",
+  },
+  clothingSource: {
+    es: "Fuente de prendas",
+    en: "Clothing source",
+  },
+  useOnlyWardrobe: {
+    es: "Usar solo mi armario",
+    en: "Use only my wardrobe",
+  },
+  includeInternetClothing: {
+    es: "Incluir prendas de internet",
+    en: "Include internet clothing",
+  },
+  weatherAuto: {
+    es: "Clima detectado automáticamente",
+    en: "Weather detected automatically",
+  },
+  generateStyledOutfit: {
+    es: "Crear outfit con AI",
+    en: "Create outfit with AI",
+  },
+  occasionCasual: {
+    es: "Casual",
+    en: "Casual",
+  },
+  occasionWork: {
+    es: "Trabajo",
+    en: "Work",
+  },
+  occasionDate: {
+    es: "Cita",
+    en: "Date",
+  },
+  occasionGym: {
+    es: "Gym",
+    en: "Gym",
+  },
+  occasionFormal: {
+    es: "Formal",
+    en: "Formal",
+  },
+  occasionNightOut: {
+    es: "Salida",
+    en: "Night out",
+  },
+  occasionSchool: {
+    es: "Facultad / estudio",
+    en: "School / university",
+  },
+  timeMorning: {
+    es: "Mañana",
+    en: "Morning",
+  },
+  timeAfternoon: {
+    es: "Tarde",
+    en: "Afternoon",
+  },
+  timeEvening: {
+    es: "Atardecer",
+    en: "Evening",
+  },
+  timeNight: {
+    es: "Noche",
+    en: "Night",
+  },
+  stylistQuestionnaire: {
+    es: "Cuestionario del stylist",
+    en: "Stylist questionnaire",
+  },
+  stylistQuestionnaireHint: {
+    es: "Respondé esto y armamos una propuesta coherente con tu estilo, el contexto y tu historial.",
+    en: "Answer this and we’ll build a look aligned with your style, context, and history.",
+  },
+  yourStyleDirection: {
+    es: "Dirección de estilo",
+    en: "Style direction",
+  },
+  generatedPalette: {
+    es: "Paleta elegida",
+    en: "Chosen palette",
+  },
+  generatedOutfit: {
+    es: "Outfit generado",
+    en: "Generated outfit",
+  },
+  optionalLayer: {
+    es: "Capa / accesorio",
+    en: "Layer / accessory",
+  },
+  sourceWardrobe: {
+    es: "De tu armario",
+    en: "From your wardrobe",
+  },
+  sourceInternet: {
+    es: "Sugerencia externa",
+    en: "External suggestion",
+  },
+  noOutfitAvailable: {
+    es: "No encontré una combinación válida todavía.",
+    en: "I couldn't find a valid combination yet.",
+  },
+  weatherUnavailable: {
+    es: "No pudimos leer el clima, pero igual podemos estilizar el outfit.",
+    en: "We couldn't read the weather, but we can still style the outfit.",
+  },
+  saveFirstStyles: {
+    es: "Guardá tus estilos primero para activar tu stylist personalizado.",
+    en: "Save your styles first to activate your personalized stylist.",
   },
 } satisfies Record<string, TranslationValue>;
 

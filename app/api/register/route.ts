@@ -2,12 +2,13 @@ import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
+import { normalizeGender } from "@/lib/style-system";
 
 export async function POST(req: Request) {
   try {
     await connectDB();
 
-    const { name, email, password } = await req.json();
+    const { name, email, password, gender } = await req.json();
 
     if (!name || !email || !password) {
       return NextResponse.json(
@@ -31,6 +32,14 @@ export async function POST(req: Request) {
       name,
       email,
       password: hashedPassword,
+      gender: normalizeGender(gender),
+      styles: [],
+      styleMemory: {
+        styleWeights: {},
+        colorWeights: {},
+        silhouetteWeights: {},
+        lastGeneratedOutfits: [],
+      },
     });
 
     return NextResponse.json({
@@ -39,6 +48,8 @@ export async function POST(req: Request) {
         id: newUser._id,
         name: newUser.name,
         email: newUser.email,
+        gender: newUser.gender,
+        styles: newUser.styles,
       },
     });
   } catch (error) {
