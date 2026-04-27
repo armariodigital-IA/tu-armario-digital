@@ -24,6 +24,10 @@ const UserSchema = new Schema(
       type: [String],
       default: [],
     },
+    hasCompletedOnboarding: {
+      type: Boolean,
+      default: false,
+    },
     styleMemory: {
       styleWeights: {
         type: Schema.Types.Mixed,

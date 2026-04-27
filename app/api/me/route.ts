@@ -53,7 +53,7 @@ export async function PATCH(req: NextRequest) {
 
     const decoded = verifyAuthToken(token);
     const body = (await req.json().catch(() => null)) as
-      | { styles?: unknown }
+      | { styles?: unknown; hasCompletedOnboarding?: unknown }
       | null;
 
     if (!body || !Array.isArray(body.styles)) {
@@ -67,10 +67,14 @@ export async function PATCH(req: NextRequest) {
       .filter((value): value is string => typeof value === "string")
       .map((value) => value.trim())
       .filter(Boolean);
+    const hasCompletedOnboarding =
+      typeof body.hasCompletedOnboarding === "boolean"
+        ? body.hasCompletedOnboarding
+        : styles.length > 0;
 
     const user = await User.findByIdAndUpdate(
       decoded.id,
-      { styles },
+      { styles, hasCompletedOnboarding },
       { new: true }
     ).select("-password");
 

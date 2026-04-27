@@ -87,9 +87,9 @@ export default function StylePreferencesModal({
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/35 p-4 backdrop-blur-sm sm:p-6">
-      <div className="flex max-h-[90vh] w-full max-w-[1080px] flex-col overflow-hidden rounded-[36px] border border-white/70 bg-[#FCFAF6] shadow-[0_40px_120px_rgba(22,43,78,0.18)]">
+      <div className="relative flex max-h-[90vh] w-full max-w-[1080px] flex-col overflow-hidden rounded-[36px] border border-white/70 bg-[#FCFAF6] shadow-[0_40px_120px_rgba(22,43,78,0.18)]">
         <div className="flex items-start justify-between gap-4 border-b border-[#EEE5D7] px-5 py-5 sm:px-8 sm:py-6">
-          <div className="max-w-3xl">
+          <div className="relative max-w-3xl overflow-hidden">
             <div className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-[#162B4E] shadow-sm">
               <Sparkles size={16} />
               {t("styleOnboardingEyebrow")}

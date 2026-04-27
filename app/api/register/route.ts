@@ -34,6 +34,7 @@ export async function POST(req: Request) {
       password: hashedPassword,
       gender: normalizeGender(gender),
       styles: [],
+      hasCompletedOnboarding: false,
       styleMemory: {
         styleWeights: {},
         colorWeights: {},
@@ -50,6 +51,7 @@ export async function POST(req: Request) {
         email: newUser.email,
         gender: newUser.gender,
         styles: newUser.styles,
+        hasCompletedOnboarding: newUser.hasCompletedOnboarding,
       },
     });
   } catch (error) {

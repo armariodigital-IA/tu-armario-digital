@@ -10,16 +10,9 @@ import {
   Wind,
 } from "lucide-react";
 import { useLanguage } from "@/app/providers/LanguageProvider";
+import { useUser } from "@/app/providers/UserProvider";
 import { languageLabels, type Language } from "@/app/i18n";
 import StylePreferencesModal from "@/app/components/StylePreferencesModal";
-
-type User = {
-  id: string;
-  name: string;
-  email: string;
-  gender?: string;
-  styles?: string[];
-};
 
 type StyleModalMode = "closed" | "required" | "edit";
 
@@ -118,7 +111,8 @@ function getWeatherCardTheme(condition: string) {
 
 export default function Dashboard() {
   const { language, setLanguage, t } = useLanguage();
-  const [user, setUser] = useState<User | null>(null);
+  const { user, hasHydratedUser, needsStyleOnboarding, saveStylePreferences } =
+    useUser();
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [hourly, setHourly] = useState<HourlyForecast[]>([]);
   const [showMenu, setShowMenu] = useState(false);
@@ -137,18 +131,21 @@ export default function Dashboard() {
   );
   const hasOpenedRequiredStylesRef = useRef(false);
 
-  /* ================= USER ================= */
   useEffect(() => {
-    fetch("/api/me", { credentials: "include" })
-  .then(res => res.json())
-  .then((data: User) => {
-    setUser(data);
-    if ((!data.styles || data.styles.length === 0) && !hasOpenedRequiredStylesRef.current) {
+    if (!hasHydratedUser) {
+      return;
+    }
+
+    if (needsStyleOnboarding && !hasOpenedRequiredStylesRef.current) {
       hasOpenedRequiredStylesRef.current = true;
       setStyleModalMode("required");
+      return;
     }
-  });
-  }, []);
+
+    if (!needsStyleOnboarding && styleModalMode === "required") {
+      setStyleModalMode("closed");
+    }
+  }, [hasHydratedUser, needsStyleOnboarding, styleModalMode]);
 
   /* ================= OUTFIT Y CLIMA ================= */
   useEffect(() => {
@@ -252,21 +249,13 @@ export default function Dashboard() {
   const saveStyles = async (styles: string[]) => {
     setAccountError("");
 
-    const res = await fetch("/api/me", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ styles }),
-    });
-
-    if (!res.ok) {
+    try {
+      await saveStylePreferences({ styles, hasCompletedOnboarding: true });
+      setStyleModalMode("closed");
+    } catch {
       setAccountError(t("styleSaveError"));
       throw new Error(t("styleSaveError"));
     }
-
-    const data = (await res.json()) as User;
-    setUser(data);
-    setStyleModalMode("closed");
   };
 
   /* ================= FRASES DINÁMICAS PRO ================= */
@@ -376,7 +365,7 @@ export default function Dashboard() {
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {user?.styles && user.styles.length > 0 ? (
+                  {!hasHydratedUser ? null : user?.styles && user.styles.length > 0 ? (
                     user.styles.map((style) => (
                       <span
                         key={style}

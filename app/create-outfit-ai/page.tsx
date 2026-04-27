@@ -4,16 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle2, LoaderCircle, Sparkles, Shirt } from "lucide-react";
 import { useLanguage } from "@/app/providers/LanguageProvider";
+import { useUser } from "@/app/providers/UserProvider";
 import StylePreferencesModal from "@/app/components/StylePreferencesModal";
-
-type User = {
-  _id?: string;
-  id?: string;
-  name: string;
-  email: string;
-  gender?: string;
-  styles?: string[];
-};
 
 type Garment = {
   _id: string;
@@ -71,8 +63,8 @@ const timeOptions = [
 export default function GenerateAIOutfit() {
   const router = useRouter();
   const { t } = useLanguage();
-
-  const [user, setUser] = useState<User | null>(null);
+  const { user, hasHydratedUser, needsStyleOnboarding, saveStylePreferences } =
+    useUser();
   const [occasion, setOccasion] = useState("casual");
   const [timeOfDay, setTimeOfDay] = useState("morning");
   const [freeText, setFreeText] = useState("");
@@ -94,17 +86,20 @@ export default function GenerateAIOutfit() {
   const hasOpenedRequiredStylesRef = useRef(false);
 
   useEffect(() => {
-    fetch("/api/me", { credentials: "include" })
-      .then((res) => res.json())
-      .then((data: User) => {
-        setUser(data);
-        if ((!data.styles || data.styles.length === 0) && !hasOpenedRequiredStylesRef.current) {
-          hasOpenedRequiredStylesRef.current = true;
-          setStyleModalMode("required");
-        }
-      })
-      .catch(() => undefined);
-  }, []);
+    if (!hasHydratedUser) {
+      return;
+    }
+
+    if (needsStyleOnboarding && !hasOpenedRequiredStylesRef.current) {
+      hasOpenedRequiredStylesRef.current = true;
+      setStyleModalMode("required");
+      return;
+    }
+
+    if (!needsStyleOnboarding && styleModalMode === "required") {
+      setStyleModalMode("closed");
+    }
+  }, [hasHydratedUser, needsStyleOnboarding, styleModalMode]);
 
   useEffect(() => {
     fetch("/api/wardrobe", { credentials: "include" })
@@ -157,20 +152,12 @@ export default function GenerateAIOutfit() {
   }, [user?.styles]);
 
   const handleSaveStyles = async (styles: string[]) => {
-    const res = await fetch("/api/me", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ styles }),
-    });
-
-    if (!res.ok) {
+    try {
+      await saveStylePreferences({ styles, hasCompletedOnboarding: true });
+      setStyleModalMode("closed");
+    } catch {
       throw new Error(t("styleSaveError"));
     }
-
-    const data = (await res.json()) as User;
-    setUser(data);
-    setStyleModalMode("closed");
   };
 
   const meetsWardrobeMinimum =
@@ -272,7 +259,7 @@ export default function GenerateAIOutfit() {
                 {t("yourStyleDirection")}
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
-                {styleLabels.length > 0 ? (
+                {!hasHydratedUser ? null : styleLabels.length > 0 ? (
                   styleLabels.map((style) => (
                     <span
                       key={style}

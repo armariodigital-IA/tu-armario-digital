@@ -1,5 +1,6 @@
 import "./globals.css";
 import { LanguageProvider } from "./providers/LanguageProvider";
+import { UserProvider } from "./providers/UserProvider";
 
 export default function RootLayout({
   children,
@@ -9,7 +10,9 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className="bg-[#F5EFE3]">
-        <LanguageProvider>{children}</LanguageProvider>
+        <LanguageProvider>
+          <UserProvider>{children}</UserProvider>
+        </LanguageProvider>
       </body>
     </html>
   );
