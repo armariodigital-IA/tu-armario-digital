@@ -51,7 +51,7 @@ export async function POST(req: Request) {
         email: user.email,
         gender: user.gender,
         styles: user.styles ?? [],
-        hasCompletedOnboarding: user.hasCompletedOnboarding ?? false,
+        hasCompletedOnboarding: user.hasCompletedOnboarding === true,
       },
     });
 

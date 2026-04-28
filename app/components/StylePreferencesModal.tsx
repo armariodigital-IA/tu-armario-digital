@@ -29,15 +29,17 @@ export default function StylePreferencesModal({
   description,
 }: StylePreferencesModalProps) {
   const { language, t } = useLanguage();
-  const [selected, setSelected] = useState<string[]>(initialStyles);
+  const [selectedStyles, setSelectedStyles] = useState<string[]>(initialStyles);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [step, setStep] = useState<Step>(mandatory ? "intro" : "styles");
   const wasOpenRef = useRef(false);
   const resolvedGender = normalizeGender(gender);
 
   useEffect(() => {
     if (isOpen && !wasOpenRef.current) {
-      setSelected(initialStyles);
+      setSelectedStyles(initialStyles);
+      setSaveError("");
       setStep(mandatory ? "intro" : "styles");
     }
 
@@ -67,19 +69,31 @@ export default function StylePreferencesModal({
   if (!isOpen) return null;
 
   const toggleStyle = (styleId: string) => {
-    setSelected((current) =>
+    setSaveError("");
+    setSelectedStyles((current) =>
       current.includes(styleId)
         ? current.filter((value) => value !== styleId)
         : [...current, styleId]
     );
   };
 
-  const handleSave = async () => {
-    if (selected.length === 0) return;
+  const handleConfirmStyles = async () => {
+    console.log("Selected styles:", selectedStyles);
+
+    if (!selectedStyles || selectedStyles.length === 0) {
+      setSaveError(t("stylesMultiSelectHint"));
+      return;
+    }
+
+    console.log("Saving styles...");
     setSaving(true);
+    setSaveError("");
 
     try {
-      await onSave(selected);
+      await onSave(selectedStyles);
+    } catch (error) {
+      console.error("Error saving styles:", error);
+      setSaveError(t("styleSaveError"));
     } finally {
       setSaving(false);
     }
@@ -156,16 +170,22 @@ export default function StylePreferencesModal({
                   {resolvedGender === "female" ? t("genderFemale") : t("genderMale")}
                 </span>
                 <span className="rounded-full bg-white px-4 py-2 text-sm font-medium text-[#162B4E] shadow-sm">
-                  {t("stylesSelectedCount", { count: selected.length })}
+                  {t("stylesSelectedCount", { count: selectedStyles.length })}
                 </span>
                 <span className="text-sm text-[#4B5F82]">
                   {t("stylesMultiSelectHint")}
                 </span>
               </div>
 
+              {saveError && (
+                <p className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                  {saveError}
+                </p>
+              )}
+
               <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4">
                 {options.map((option) => {
-                  const active = selected.includes(option.id);
+                  const active = selectedStyles.includes(option.id);
 
                   return (
                     <button
@@ -230,8 +250,8 @@ export default function StylePreferencesModal({
                   )}
                   <button
                     type="button"
-                    disabled={selected.length === 0 || saving}
-                    onClick={() => void handleSave()}
+                    disabled={selectedStyles.length === 0 || saving}
+                    onClick={() => void handleConfirmStyles()}
                     className="rounded-2xl bg-[#162B4E] px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {saving ? t("savingStyles") : t("confirmStyles")}

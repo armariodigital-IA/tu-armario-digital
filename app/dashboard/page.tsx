@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Sun,
   Cloud,
@@ -14,7 +14,7 @@ import { useUser } from "@/app/providers/UserProvider";
 import { languageLabels, type Language } from "@/app/i18n";
 import StylePreferencesModal from "@/app/components/StylePreferencesModal";
 
-type StyleModalMode = "closed" | "required" | "edit";
+type StyleModalMode = "closed" | "edit";
 
 type HourlyForecast = {
   time: string;
@@ -111,8 +111,7 @@ function getWeatherCardTheme(condition: string) {
 
 export default function Dashboard() {
   const { language, setLanguage, t } = useLanguage();
-  const { user, hasHydratedUser, needsStyleOnboarding, saveStylePreferences } =
-    useUser();
+  const { user, hasHydratedUser, saveStylePreferences } = useUser();
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [hourly, setHourly] = useState<HourlyForecast[]>([]);
   const [showMenu, setShowMenu] = useState(false);
@@ -129,23 +128,13 @@ export default function Dashboard() {
     () => t("recommendationLoadError"),
     [t]
   );
-  const hasOpenedRequiredStylesRef = useRef(false);
-
   useEffect(() => {
     if (!hasHydratedUser) {
       return;
     }
 
-    if (needsStyleOnboarding && !hasOpenedRequiredStylesRef.current) {
-      hasOpenedRequiredStylesRef.current = true;
-      setStyleModalMode("required");
-      return;
-    }
-
-    if (!needsStyleOnboarding && styleModalMode === "required") {
-      setStyleModalMode("closed");
-    }
-  }, [hasHydratedUser, needsStyleOnboarding, styleModalMode]);
+    console.log("[Dashboard Account] user.styles:", user?.styles ?? []);
+  }, [hasHydratedUser, user?.styles]);
 
   /* ================= OUTFIT Y CLIMA ================= */
   useEffect(() => {
@@ -309,7 +298,7 @@ export default function Dashboard() {
       initialStyles={user?.styles ?? []}
       onClose={() => setStyleModalMode("closed")}
       onSave={saveStyles}
-      mandatory={styleModalMode === "required"}
+      mandatory={false}
       title={styleModalMode === "edit" ? t("styleEditTitle") : undefined}
       description={styleModalMode === "edit" ? t("styleEditDescription") : undefined}
     />

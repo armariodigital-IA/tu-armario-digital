@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json(user);
+    return NextResponse.json(user.toObject());
 
   } catch (error) {
     console.log(error);
@@ -67,14 +67,18 @@ export async function PATCH(req: NextRequest) {
       .filter((value): value is string => typeof value === "string")
       .map((value) => value.trim())
       .filter(Boolean);
-    const hasCompletedOnboarding =
-      typeof body.hasCompletedOnboarding === "boolean"
-        ? body.hasCompletedOnboarding
-        : styles.length > 0;
+    const update: {
+      styles: string[];
+      hasCompletedOnboarding?: boolean;
+    } = { styles };
+
+    if (typeof body.hasCompletedOnboarding === "boolean") {
+      update.hasCompletedOnboarding = body.hasCompletedOnboarding;
+    }
 
     const user = await User.findByIdAndUpdate(
       decoded.id,
-      { styles, hasCompletedOnboarding },
+      update,
       { new: true }
     ).select("-password");
 
@@ -85,7 +89,7 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    return NextResponse.json(user);
+    return NextResponse.json(user.toObject());
   } catch (error) {
     console.log(error);
     return NextResponse.json(

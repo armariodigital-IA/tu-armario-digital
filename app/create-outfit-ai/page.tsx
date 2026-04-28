@@ -1,18 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle2, LoaderCircle, Sparkles, Shirt } from "lucide-react";
 import { useLanguage } from "@/app/providers/LanguageProvider";
 import { useUser } from "@/app/providers/UserProvider";
-import StylePreferencesModal from "@/app/components/StylePreferencesModal";
 
 type Garment = {
   _id: string;
   category: "top" | "bottom" | "shoes" | "outerwear";
 };
-
-type StyleModalMode = "closed" | "required";
 
 type WardrobeRequirement = {
   tops: number;
@@ -63,8 +60,7 @@ const timeOptions = [
 export default function GenerateAIOutfit() {
   const router = useRouter();
   const { t } = useLanguage();
-  const { user, hasHydratedUser, needsStyleOnboarding, saveStylePreferences } =
-    useUser();
+  const { user, hasHydratedUser } = useUser();
   const [occasion, setOccasion] = useState("casual");
   const [timeOfDay, setTimeOfDay] = useState("morning");
   const [freeText, setFreeText] = useState("");
@@ -77,29 +73,11 @@ export default function GenerateAIOutfit() {
   const [palette, setPalette] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [styleModalMode, setStyleModalMode] = useState<StyleModalMode>("closed");
   const [wardrobeRequirement, setWardrobeRequirement] = useState<WardrobeRequirement>({
     tops: 0,
     bottoms: 0,
     shoes: 0,
   });
-  const hasOpenedRequiredStylesRef = useRef(false);
-
-  useEffect(() => {
-    if (!hasHydratedUser) {
-      return;
-    }
-
-    if (needsStyleOnboarding && !hasOpenedRequiredStylesRef.current) {
-      hasOpenedRequiredStylesRef.current = true;
-      setStyleModalMode("required");
-      return;
-    }
-
-    if (!needsStyleOnboarding && styleModalMode === "required") {
-      setStyleModalMode("closed");
-    }
-  }, [hasHydratedUser, needsStyleOnboarding, styleModalMode]);
 
   useEffect(() => {
     fetch("/api/wardrobe", { credentials: "include" })
@@ -151,15 +129,6 @@ export default function GenerateAIOutfit() {
     return source.map((style) => style.replace(/-/g, " "));
   }, [user?.styles]);
 
-  const handleSaveStyles = async (styles: string[]) => {
-    try {
-      await saveStylePreferences({ styles, hasCompletedOnboarding: true });
-      setStyleModalMode("closed");
-    } catch {
-      throw new Error(t("styleSaveError"));
-    }
-  };
-
   const meetsWardrobeMinimum =
     wardrobeRequirement.tops >= 5 &&
     wardrobeRequirement.bottoms >= 4 &&
@@ -167,7 +136,6 @@ export default function GenerateAIOutfit() {
 
   const generate = async () => {
     if (!user?.styles || user.styles.length === 0) {
-      setStyleModalMode("required");
       setError(t("saveFirstStyles"));
       return;
     }
@@ -224,15 +192,6 @@ export default function GenerateAIOutfit() {
 
   return (
     <>
-      <StylePreferencesModal
-        isOpen={styleModalMode !== "closed"}
-        gender={user?.gender}
-        initialStyles={user?.styles ?? []}
-        onClose={() => setStyleModalMode("closed")}
-        onSave={handleSaveStyles}
-        mandatory={styleModalMode === "required"}
-      />
-
       <main className="min-h-screen bg-[#F5EFE3] px-5 py-6 text-[#162B4E] sm:px-8 sm:py-10">
         <div className="mx-auto max-w-7xl">
           <div className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">

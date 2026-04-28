@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   createContext,
   useContext,
   useEffect,
@@ -26,6 +27,7 @@ type SaveStylePreferencesInput = {
 
 type UserContextValue = {
   user: AuthUser | null;
+  isAuthenticated: boolean;
   isHydratingUser: boolean;
   hasHydratedUser: boolean;
   needsStyleOnboarding: boolean;
@@ -45,7 +47,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [isHydratingUser, setIsHydratingUser] = useState(true);
   const [hasHydratedUser, setHasHydratedUser] = useState(false);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     setIsHydratingUser(true);
 
     try {
@@ -66,27 +68,32 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setIsHydratingUser(false);
       setHasHydratedUser(true);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void refreshUser();
-  }, []);
+  }, [refreshUser]);
 
-  const setUser = (nextUser: AuthUser | null) => {
+  const setUser = useCallback((nextUser: AuthUser | null) => {
     setUserState(nextUser);
     setHasHydratedUser(true);
     setIsHydratingUser(false);
-  };
+  }, []);
 
-  const saveStylePreferences = async ({
+  const saveStylePreferences = useCallback(async ({
     styles,
     hasCompletedOnboarding = true,
   }: SaveStylePreferencesInput) => {
+    const normalizedStyles = normalizeStyles(styles);
+
     const res = await fetch("/api/me", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ styles, hasCompletedOnboarding }),
+      body: JSON.stringify({
+        styles: normalizedStyles,
+        hasCompletedOnboarding,
+      }),
     });
 
     if (!res.ok) {
@@ -96,20 +103,22 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const data = (await res.json()) as AuthUser;
     setUser(data);
     return data;
-  };
+  }, [setUser]);
+
+  const isAuthenticated = hasHydratedUser && user !== null;
 
   const needsStyleOnboarding = useMemo(() => {
-    if (!hasHydratedUser || !user) {
+    if (!isAuthenticated || !user) {
       return false;
     }
 
-    const styles = normalizeStyles(user.styles);
-    return styles.length === 0 && user.hasCompletedOnboarding !== true;
-  }, [hasHydratedUser, user]);
+    return !user.hasCompletedOnboarding;
+  }, [isAuthenticated, user]);
 
   const value = useMemo<UserContextValue>(
     () => ({
       user,
+      isAuthenticated,
       isHydratingUser,
       hasHydratedUser,
       needsStyleOnboarding,
@@ -117,7 +126,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setUser,
       saveStylePreferences,
     }),
-    [user, isHydratingUser, hasHydratedUser, needsStyleOnboarding]
+    [
+      user,
+      isAuthenticated,
+      isHydratingUser,
+      hasHydratedUser,
+      needsStyleOnboarding,
+      refreshUser,
+      setUser,
+      saveStylePreferences,
+    ]
   );
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

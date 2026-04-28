@@ -11,7 +11,9 @@ export default function RootLayout({
     <html lang="es">
       <body className="bg-[#F5EFE3]">
         <LanguageProvider>
-          <UserProvider>{children}</UserProvider>
+          <UserProvider>
+            {children}
+          </UserProvider>
         </LanguageProvider>
       </body>
     </html>
