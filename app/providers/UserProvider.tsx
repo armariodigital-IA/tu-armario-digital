@@ -7,7 +7,9 @@ import {
   useEffect,
   useMemo,
   useState,
+  type Dispatch,
   type ReactNode,
+  type SetStateAction,
 } from "react";
 
 export type AuthUser = {
@@ -32,7 +34,7 @@ type UserContextValue = {
   hasHydratedUser: boolean;
   needsStyleOnboarding: boolean;
   refreshUser: () => Promise<AuthUser | null>;
-  setUser: (user: AuthUser | null) => void;
+  setUser: Dispatch<SetStateAction<AuthUser | null>>;
   saveStylePreferences: (input: SaveStylePreferencesInput) => Promise<AuthUser>;
 };
 
@@ -74,7 +76,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     void refreshUser();
   }, [refreshUser]);
 
-  const setUser = useCallback((nextUser: AuthUser | null) => {
+  const setUser = useCallback((nextUser: SetStateAction<AuthUser | null>) => {
     setUserState(nextUser);
     setHasHydratedUser(true);
     setIsHydratingUser(false);
@@ -85,6 +87,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     hasCompletedOnboarding = true,
   }: SaveStylePreferencesInput) => {
     const normalizedStyles = normalizeStyles(styles);
+    console.log("Selected:", normalizedStyles);
+    console.log("User BEFORE:", user);
 
     const res = await fetch("/api/me", {
       method: "PATCH",
@@ -101,9 +105,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
 
     const data = (await res.json()) as AuthUser;
+    console.log("User AFTER UPDATE:", data);
     setUser(data);
     return data;
-  }, [setUser]);
+  }, [setUser, user]);
 
   const isAuthenticated = hasHydratedUser && user !== null;
 

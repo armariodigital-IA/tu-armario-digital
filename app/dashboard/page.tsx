@@ -111,7 +111,7 @@ function getWeatherCardTheme(condition: string) {
 
 export default function Dashboard() {
   const { language, setLanguage, t } = useLanguage();
-  const { user, hasHydratedUser, saveStylePreferences } = useUser();
+  const { user, hasHydratedUser, saveStylePreferences, setUser } = useUser();
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [hourly, setHourly] = useState<HourlyForecast[]>([]);
   const [showMenu, setShowMenu] = useState(false);
@@ -133,8 +133,8 @@ export default function Dashboard() {
       return;
     }
 
-    console.log("[Dashboard Account] user.styles:", user?.styles ?? []);
-  }, [hasHydratedUser, user?.styles]);
+    console.log("User styles:", user?.styles ?? []);
+  }, [hasHydratedUser, user]);
 
   /* ================= OUTFIT Y CLIMA ================= */
   useEffect(() => {
@@ -239,7 +239,30 @@ export default function Dashboard() {
     setAccountError("");
 
     try {
-      await saveStylePreferences({ styles, hasCompletedOnboarding: true });
+      console.log("Saving styles:", styles);
+
+      const updatedUser = await saveStylePreferences({
+        styles,
+        hasCompletedOnboarding: true,
+      });
+
+      console.log("User after save:", updatedUser);
+
+      setUser((previousUser) => {
+        if (!previousUser) {
+          return updatedUser;
+        }
+
+        return {
+          ...previousUser,
+          ...updatedUser,
+          styles,
+          hasCompletedOnboarding: true,
+        };
+      });
+
+      window.localStorage.setItem("onboardingCompleted", "true");
+
       setStyleModalMode("closed");
     } catch {
       setAccountError(t("styleSaveError"));
@@ -327,7 +350,7 @@ export default function Dashboard() {
 </button>
         </div>
 
-        <div className="relative">
+        <div className="relative z-20">
           <button
             onClick={() => setShowMenu(!showMenu)}
             className={ButtonStyle}
@@ -336,7 +359,8 @@ export default function Dashboard() {
           </button>
 
           {showMenu && (
-            <div className="absolute right-0 mt-3 min-w-[280px] bg-white shadow-xl rounded-2xl p-4 space-y-4">
+            <div className="absolute right-0 z-30 mt-3 min-w-[280px] overflow-hidden rounded-2xl bg-white p-4 shadow-xl">
+              <div className="relative z-10 space-y-4">
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#162B4E]/60">
@@ -398,6 +422,7 @@ export default function Dashboard() {
               >
                 {t("logout")}
               </button>
+              </div>
             </div>
           )}
         </div>

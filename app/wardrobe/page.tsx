@@ -62,6 +62,8 @@ type GarmentDraft = {
   isFavorite: boolean;
 };
 
+const WARDROBE_CACHE_KEY = "wardrobe-garments";
+
 const defaultDraft = (): GarmentDraft => ({
   name: "",
   category: "top",
@@ -98,6 +100,7 @@ export default function Wardrobe() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [garments, setGarments] = useState<Garment[]>([]);
+  const [isLoadingGarments, setIsLoadingGarments] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedGarment, setSelectedGarment] = useState<Garment | null>(null);
   const [garmentPendingDelete, setGarmentPendingDelete] = useState<Garment | null>(null);
@@ -135,14 +138,27 @@ export default function Wardrobe() {
   const getSeasonLabel = (value: GarmentSeason) =>
     seasonOptions.find((option) => option.value === value)?.label ?? value;
 
+  const persistGarments = useCallback((nextGarments: Garment[]) => {
+    setGarments(nextGarments);
+    window.sessionStorage.setItem(
+      WARDROBE_CACHE_KEY,
+      JSON.stringify(nextGarments)
+    );
+  }, []);
+
   const syncGarmentInState = (updatedGarment: Garment) => {
     const normalized = normalizeGarment(updatedGarment);
 
-    setGarments((current) =>
-      current.map((garment) =>
+    setGarments((current) => {
+      const nextGarments = current.map((garment) =>
         garment._id === normalized._id ? normalized : garment
-      )
-    );
+      );
+      window.sessionStorage.setItem(
+        WARDROBE_CACHE_KEY,
+        JSON.stringify(nextGarments)
+      );
+      return nextGarments;
+    });
     setSelectedGarment((current) =>
       current?._id === normalized._id ? normalized : current
     );
@@ -152,20 +168,44 @@ export default function Wardrobe() {
   };
 
   const fetchGarments = useCallback(async () => {
+    setIsLoadingGarments(true);
     const res = await fetch("/api/wardrobe", { credentials: "include" });
-    if (!res.ok) return;
+    if (!res.ok) {
+      setIsLoadingGarments(false);
+      return;
+    }
 
     const data = await res.json();
-    setGarments(
-      Array.isArray(data)
-        ? (data as Garment[]).map(normalizeGarment)
-        : []
-    );
-  }, []);
+    const normalizedGarments = Array.isArray(data)
+      ? (data as Garment[]).map(normalizeGarment)
+      : [];
+    persistGarments(normalizedGarments);
+    setIsLoadingGarments(false);
+  }, [persistGarments]);
 
   useEffect(() => {
-    void fetchGarments();
-  }, [fetchGarments]);
+    const cachedGarments = window.sessionStorage.getItem(WARDROBE_CACHE_KEY);
+
+    if (cachedGarments) {
+      try {
+        const parsedGarments = JSON.parse(cachedGarments) as Garment[];
+        if (Array.isArray(parsedGarments)) {
+          setGarments(parsedGarments.map(normalizeGarment));
+          setIsLoadingGarments(false);
+          return;
+        }
+      } catch {
+        window.sessionStorage.removeItem(WARDROBE_CACHE_KEY);
+      }
+    }
+
+    if (garments.length === 0) {
+      void fetchGarments();
+      return;
+    }
+
+    setIsLoadingGarments(false);
+  }, [fetchGarments, garments.length]);
 
   useEffect(() => {
     if (!favoriteFeedback) return;
@@ -312,6 +352,7 @@ export default function Wardrobe() {
     }
 
     resetGarmentForm();
+    window.sessionStorage.removeItem(WARDROBE_CACHE_KEY);
     void fetchGarments();
   };
 
@@ -410,7 +451,16 @@ export default function Wardrobe() {
       }
 
       setGarments((current) =>
-        current.filter((garment) => garment._id !== garmentPendingDelete._id)
+        {
+          const nextGarments = current.filter(
+            (garment) => garment._id !== garmentPendingDelete._id
+          );
+          window.sessionStorage.setItem(
+            WARDROBE_CACHE_KEY,
+            JSON.stringify(nextGarments)
+          );
+          return nextGarments;
+        }
       );
       setSelectedGarment((current) =>
         current?._id === garmentPendingDelete._id ? null : current
@@ -494,7 +544,18 @@ export default function Wardrobe() {
           </div>
         </div>
 
-        {filteredGarments.length === 0 ? (
+        {isLoadingGarments ? (
+          <div className="flex min-h-[360px] items-center justify-center rounded-[32px] border border-dashed border-[#d6cfbf] bg-[#FCFAF6] px-6 text-center shadow-[0_24px_80px_rgba(15,23,42,0.06)]">
+            <div className="max-w-md">
+              <p className="text-xl font-semibold text-[#162B4E]">
+                Loading clothes...
+              </p>
+              <p className="mt-3 text-sm leading-6 text-[#4B5F82]">
+                {t("wardrobeBannerBody")}
+              </p>
+            </div>
+          </div>
+        ) : filteredGarments.length === 0 ? (
           <div className="flex min-h-[360px] items-center justify-center rounded-[32px] border border-dashed border-[#d6cfbf] bg-[#FCFAF6] px-6 text-center shadow-[0_24px_80px_rgba(15,23,42,0.06)]">
             <div className="max-w-md">
               <p className="text-xl font-semibold text-[#162B4E]">
@@ -673,6 +734,7 @@ export default function Wardrobe() {
                         <img
                           src={addDraft.imageUrl}
                           alt={addDraft.name || t("addGarment")}
+                          loading="lazy"
                           className="max-h-[240px] w-full rounded-[20px] object-contain"
                         />
                       </div>
@@ -821,6 +883,7 @@ export default function Wardrobe() {
                   <img
                     src={detailGarment.imageUrl}
                     alt={detailGarment.name}
+                    loading="lazy"
                     className="h-full w-full object-contain p-6"
                   />
                 </div>
@@ -1039,6 +1102,7 @@ function GarmentCard({
         <img
           src={garment.imageUrl}
           alt={garment.name}
+          loading="lazy"
           className="h-full w-full object-contain p-5"
         />
 

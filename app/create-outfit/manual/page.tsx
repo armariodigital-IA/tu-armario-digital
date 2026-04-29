@@ -55,7 +55,7 @@ export default function ManualOutfitPage() {
   return (
     <main className="min-h-screen bg-[#F5EFE3] px-8 py-10">
       <button
-        onClick={() => router.back()}
+        onClick={() => router.push("/dashboard")}
         className="mb-8 px-4 py-2 bg-[#162B4E] text-white rounded-lg"
       >
         ← {t("back")}
