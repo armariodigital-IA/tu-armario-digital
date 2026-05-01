@@ -14,7 +14,7 @@ export default function OnboardingGate() {
     hasHydratedUser,
     isAuthenticated,
     needsStyleOnboarding,
-    saveStylePreferences,
+    saveUserStyles,
   } = useUser();
   const userStorageKey = useMemo(() => {
     const userId = user?.id ?? user?._id;
@@ -55,15 +55,11 @@ export default function OnboardingGate() {
       initialStyles={user.styles ?? []}
       onClose={() => undefined}
       onSave={async (styles) => {
-        console.log("Saving styles:", styles);
-        console.log("User BEFORE:", user);
-
-        const updatedUser = await saveStylePreferences({
+        const updatedUser = await saveUserStyles({
+          source: "onboarding",
           styles,
-          hasCompletedOnboarding: true,
         });
 
-        window.localStorage.setItem(ONBOARDING_STORAGE_KEY, "true");
         if (userStorageKey) {
           window.localStorage.setItem(userStorageKey, "true");
         }

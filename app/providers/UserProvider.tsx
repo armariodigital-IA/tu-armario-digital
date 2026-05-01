@@ -24,8 +24,8 @@ export type AuthUser = {
 };
 
 type SaveStylePreferencesInput = {
+  source: "onboarding" | "account";
   styles: string[];
-  hasCompletedOnboarding?: boolean;
 };
 
 type UserContextValue = {
@@ -36,7 +36,7 @@ type UserContextValue = {
   needsStyleOnboarding: boolean;
   refreshUser: () => Promise<AuthUser | null>;
   setUser: Dispatch<SetStateAction<AuthUser | null>>;
-  saveStylePreferences: (input: SaveStylePreferencesInput) => Promise<AuthUser>;
+  saveUserStyles: (input: SaveStylePreferencesInput) => Promise<AuthUser | null>;
 };
 
 const UserContext = createContext<UserContextValue | null>(null);
@@ -102,24 +102,33 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setIsHydratingUser(false);
   }, []);
 
-  const saveStylePreferences = useCallback(async ({
+  const saveUserStyles = useCallback(async ({
+    source,
     styles,
-    hasCompletedOnboarding = true,
   }: SaveStylePreferencesInput) => {
     const normalizedStyles = normalizeStyles(styles);
-    console.log("Selected:", normalizedStyles);
-    console.log("User BEFORE:", user);
+
+    if (normalizedStyles.length === 0) {
+      return null;
+    }
+
+    console.log("Saving styles from:", source);
+    console.log("Styles:", normalizedStyles);
 
     const updatedUser = normalizeUser(
       await persistUserUpdate({
         styles: normalizedStyles,
-        hasCompletedOnboarding,
+        hasCompletedOnboarding: true,
       })
     );
-    console.log("User AFTER UPDATE:", updatedUser);
+
+    console.log("User from DB:", updatedUser);
+    console.log("Styles from DB:", updatedUser?.styles);
+
     setUser(updatedUser);
+    window.localStorage.setItem("onboardingCompleted", "true");
     return updatedUser as AuthUser;
-  }, [setUser, user]);
+  }, [setUser]);
 
   const isAuthenticated = hasHydratedUser && user !== null;
 
@@ -140,7 +149,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       needsStyleOnboarding,
       refreshUser,
       setUser,
-      saveStylePreferences,
+      saveUserStyles,
     }),
     [
       user,
@@ -150,7 +159,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       needsStyleOnboarding,
       refreshUser,
       setUser,
-      saveStylePreferences,
+      saveUserStyles,
     ]
   );
 

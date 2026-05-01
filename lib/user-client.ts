@@ -32,9 +32,12 @@ export async function updateUser(data: {
     body: JSON.stringify(data),
   });
 
+  const result = (await res.json()) as UserPayload;
+  console.log("API RESPONSE:", result);
+
   if (!res.ok) {
     throw new Error("Could not save user");
   }
 
-  return (await res.json()) as UserPayload;
+  return result;
 }

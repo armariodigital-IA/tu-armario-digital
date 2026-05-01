@@ -111,7 +111,7 @@ function getWeatherCardTheme(condition: string) {
 
 export default function Dashboard() {
   const { language, setLanguage, t } = useLanguage();
-  const { user, hasHydratedUser, saveStylePreferences } = useUser();
+  const { user, hasHydratedUser, saveUserStyles } = useUser();
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [hourly, setHourly] = useState<HourlyForecast[]>([]);
   const [showMenu, setShowMenu] = useState(false);
@@ -239,16 +239,12 @@ export default function Dashboard() {
     setAccountError("");
 
     try {
-      console.log("Saving styles:", styles);
-
-      const updatedUser = await saveStylePreferences({
+      const updatedUser = await saveUserStyles({
+        source: "account",
         styles,
-        hasCompletedOnboarding: true,
       });
 
       console.log("User after save:", updatedUser);
-
-      window.localStorage.setItem("onboardingCompleted", "true");
 
       setStyleModalMode("closed");
     } catch {

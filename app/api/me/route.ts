@@ -66,9 +66,13 @@ async function updateUser(req: NextRequest) {
     }
 
     const decoded = verifyAuthToken(token);
+    const userId = decoded.id;
     const body = (await req.json().catch(() => null)) as
       | { styles?: unknown; hasCompletedOnboarding?: unknown }
       | null;
+
+    console.log("BODY:", body);
+    console.log("USER ID:", userId);
 
     if (!body || !Array.isArray(body.styles)) {
       return NextResponse.json(
@@ -82,7 +86,7 @@ async function updateUser(req: NextRequest) {
       .map((value) => value.trim())
       .filter(Boolean);
     const updatedUser = await User.findByIdAndUpdate(
-      decoded.id,
+      userId,
       {
         styles,
         hasCompletedOnboarding:
