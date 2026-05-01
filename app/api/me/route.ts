@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       return userId;
     }
 
-    const user = await User.findById(userId).select("-password");
+    const user = await User.findById(userId);
 
     if (!user) {
       return NextResponse.json(
@@ -51,7 +51,10 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const normalizedUser = normalizeUserDocument(user.toObject());
+    const userObject = user.toObject() as Record<string, unknown>;
+    delete userObject.password;
+
+    const normalizedUser = normalizeUserDocument(userObject);
     console.log("User from DB:", normalizedUser);
     console.log("Styles from DB:", normalizedUser.styles);
 
@@ -110,7 +113,7 @@ async function updateUser(req: NextRequest) {
         ? body.hasCompletedOnboarding
         : true;
 
-    const user = await User.findById(userId).select("-password");
+    const user = await User.findById(userId);
 
     if (!user) {
       return NextResponse.json(
@@ -119,19 +122,41 @@ async function updateUser(req: NextRequest) {
       );
     }
 
+    if (!Array.isArray(user.styles)) {
+      user.styles = [];
+    }
+
     user.styles = styles;
     user.hasCompletedOnboarding = hasCompletedOnboarding;
 
     console.log("BEFORE SAVE:", user.styles);
 
-    await user.save();
+    await User.updateOne(
+      { _id: userId },
+      {
+        $set: {
+          styles,
+          hasCompletedOnboarding,
+        },
+      }
+    );
 
-    console.log("AFTER SAVE:", user.styles);
+    const afterSaveUser = await User.findById(userId);
+    console.log("AFTER SAVE:", afterSaveUser?.styles);
 
     const checkUser = await User.findById(userId).select("-password");
     console.log("UPDATED USER IN DB:", checkUser);
 
-    const normalizedUser = normalizeUserDocument(user.toObject());
+    const updatedUser = await User.findById(userId).select("-password");
+
+    if (!updatedUser) {
+      return NextResponse.json(
+        { error: "Usuario no encontrado" },
+        { status: 404 }
+      );
+    }
+
+    const normalizedUser = normalizeUserDocument(updatedUser.toObject());
     console.log("User from DB:", normalizedUser);
     console.log("Styles from DB:", normalizedUser.styles);
 
