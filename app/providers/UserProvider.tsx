@@ -69,16 +69,35 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const data = normalizeUser(await fetchCurrentUser());
 
       if (!data) {
-        setUserState(null);
+        console.warn("Skipping null user refresh");
         return null;
       }
 
       console.log("User from DB:", data);
       console.log("Styles from DB:", data?.styles);
-      setUserState(data);
+      setUserState((prev) => {
+        console.log("PREV USER:", prev);
+        console.log("NEW DATA:", data);
+
+        if (!prev) {
+          return data;
+        }
+
+        if (
+          Array.isArray(prev.styles) &&
+          prev.styles.length > 0 &&
+          Array.isArray(data?.styles) &&
+          data.styles.length === 0
+        ) {
+          console.warn("Prevented overwrite: incoming styles empty, keeping previous");
+          return prev;
+        }
+
+        return data;
+      });
       return data;
     } catch {
-      setUserState(null);
+      console.warn("Skipping user overwrite because user refresh failed");
       return null;
     } finally {
       setIsHydratingUser(false);

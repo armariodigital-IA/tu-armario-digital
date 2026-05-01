@@ -13,22 +13,36 @@ function normalizeUserDocument(user: Record<string, unknown>) {
   };
 }
 
+function getAuthenticatedUserId(req: NextRequest) {
+  const token = getTokenFromRequest(req);
+  console.log("Cookies received:", req.cookies.getAll());
+
+  if (!token) {
+    console.error("NO TOKEN FOUND IN REQUEST");
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const decoded = verifyAuthToken(token);
+    console.log("FETCHING USER WITH ID:", decoded.id);
+    return decoded.id;
+  } catch (error) {
+    console.error("INVALID TOKEN", error);
+    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+  }
+}
+
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
 
-    const token = getTokenFromRequest(req);
+    const userId = getAuthenticatedUserId(req);
 
-    if (!token) {
-      return NextResponse.json(
-        { error: "No autenticado" },
-        { status: 401 }
-      );
+    if (userId instanceof NextResponse) {
+      return userId;
     }
 
-    const decoded = verifyAuthToken(token);
-
-    const user = await User.findById(decoded.id).select("-password");
+    const user = await User.findById(userId).select("-password");
 
     if (!user) {
       return NextResponse.json(
@@ -56,55 +70,68 @@ async function updateUser(req: NextRequest) {
   try {
     await connectDB();
 
-    const token = getTokenFromRequest(req);
+    const userId = getAuthenticatedUserId(req);
 
-    if (!token) {
-      return NextResponse.json(
-        { error: "No autenticado" },
-        { status: 401 }
-      );
+    if (userId instanceof NextResponse) {
+      return userId;
     }
-
-    const decoded = verifyAuthToken(token);
-    const userId = decoded.id;
     const body = (await req.json().catch(() => null)) as
-      | { styles?: unknown; hasCompletedOnboarding?: unknown }
+      | {
+          styles?: unknown;
+          selectedStyles?: unknown;
+          hasCompletedOnboarding?: unknown;
+        }
       | null;
 
     console.log("BODY:", body);
     console.log("USER ID:", userId);
 
-    if (!body || !Array.isArray(body.styles)) {
+    if (!body) {
       return NextResponse.json(
         { error: "Datos inválidos" },
         { status: 400 }
       );
     }
 
-    const styles = body.styles
+    const rawStyles = Array.isArray(body.styles)
+      ? body.styles
+      : Array.isArray(body.selectedStyles)
+      ? body.selectedStyles
+      : [];
+
+    console.log("STYLES RECEIVED:", rawStyles);
+
+    const styles = rawStyles
       .filter((value): value is string => typeof value === "string")
       .map((value) => value.trim())
       .filter(Boolean);
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      {
-        styles,
-        hasCompletedOnboarding:
-          typeof body.hasCompletedOnboarding === "boolean"
-            ? body.hasCompletedOnboarding
-            : true,
-      },
-      { new: true, runValidators: true }
-    ).select("-password");
+    const hasCompletedOnboarding =
+      typeof body.hasCompletedOnboarding === "boolean"
+        ? body.hasCompletedOnboarding
+        : true;
 
-    if (!updatedUser) {
+    const user = await User.findById(userId).select("-password");
+
+    if (!user) {
       return NextResponse.json(
         { error: "Usuario no encontrado" },
         { status: 404 }
       );
     }
 
-    const normalizedUser = normalizeUserDocument(updatedUser.toObject());
+    user.styles = styles;
+    user.hasCompletedOnboarding = hasCompletedOnboarding;
+
+    console.log("BEFORE SAVE:", user.styles);
+
+    await user.save();
+
+    console.log("AFTER SAVE:", user.styles);
+
+    const checkUser = await User.findById(userId).select("-password");
+    console.log("UPDATED USER IN DB:", checkUser);
+
+    const normalizedUser = normalizeUserDocument(user.toObject());
     console.log("User from DB:", normalizedUser);
     console.log("Styles from DB:", normalizedUser.styles);
 
