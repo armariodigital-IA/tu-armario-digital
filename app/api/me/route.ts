@@ -3,6 +3,16 @@ import { connectDB } from "@/lib/db";
 import { getTokenFromRequest, verifyAuthToken } from "@/lib/auth";
 import { User } from "@/models/User";
 
+function normalizeUserDocument(user: Record<string, unknown>) {
+  return {
+    ...user,
+    styles: Array.isArray(user.styles)
+      ? user.styles.filter((style): style is string => typeof style === "string")
+      : [],
+    hasCompletedOnboarding: user.hasCompletedOnboarding === true,
+  };
+}
+
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
@@ -27,7 +37,11 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json(user.toObject());
+    const normalizedUser = normalizeUserDocument(user.toObject());
+    console.log("User from DB:", normalizedUser);
+    console.log("Styles from DB:", normalizedUser.styles);
+
+    return NextResponse.json(normalizedUser);
 
   } catch (error) {
     console.log(error);
@@ -38,7 +52,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function PATCH(req: NextRequest) {
+async function updateUser(req: NextRequest) {
   try {
     await connectDB();
 
@@ -67,29 +81,30 @@ export async function PATCH(req: NextRequest) {
       .filter((value): value is string => typeof value === "string")
       .map((value) => value.trim())
       .filter(Boolean);
-    const update: {
-      styles: string[];
-      hasCompletedOnboarding?: boolean;
-    } = { styles };
-
-    if (typeof body.hasCompletedOnboarding === "boolean") {
-      update.hasCompletedOnboarding = body.hasCompletedOnboarding;
-    }
-
-    const user = await User.findByIdAndUpdate(
+    const updatedUser = await User.findByIdAndUpdate(
       decoded.id,
-      update,
-      { new: true }
+      {
+        styles,
+        hasCompletedOnboarding:
+          typeof body.hasCompletedOnboarding === "boolean"
+            ? body.hasCompletedOnboarding
+            : true,
+      },
+      { new: true, runValidators: true }
     ).select("-password");
 
-    if (!user) {
+    if (!updatedUser) {
       return NextResponse.json(
         { error: "Usuario no encontrado" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json(user.toObject());
+    const normalizedUser = normalizeUserDocument(updatedUser.toObject());
+    console.log("User from DB:", normalizedUser);
+    console.log("Styles from DB:", normalizedUser.styles);
+
+    return NextResponse.json(normalizedUser);
   } catch (error) {
     console.log(error);
     return NextResponse.json(
@@ -97,4 +112,12 @@ export async function PATCH(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+export async function PATCH(req: NextRequest) {
+  return updateUser(req);
+}
+
+export async function PUT(req: NextRequest) {
+  return updateUser(req);
 }

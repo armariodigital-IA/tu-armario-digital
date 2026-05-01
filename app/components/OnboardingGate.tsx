@@ -14,7 +14,6 @@ export default function OnboardingGate() {
     hasHydratedUser,
     isAuthenticated,
     needsStyleOnboarding,
-    setUser,
     saveStylePreferences,
   } = useUser();
   const userStorageKey = useMemo(() => {
@@ -71,19 +70,6 @@ export default function OnboardingGate() {
 
         console.log("Saved successfully");
         console.log("User after save:", updatedUser);
-
-        setUser((previousUser) => {
-          if (!previousUser) {
-            return updatedUser;
-          }
-
-          return {
-            ...previousUser,
-            ...updatedUser,
-            styles,
-            hasCompletedOnboarding: true,
-          };
-        });
       }}
       mandatory
       title={t("selectYourStylesTitle")}

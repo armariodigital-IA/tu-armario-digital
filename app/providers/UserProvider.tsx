@@ -11,6 +11,7 @@ import {
   type ReactNode,
   type SetStateAction,
 } from "react";
+import { fetchCurrentUser, updateUser as persistUserUpdate } from "@/lib/user-client";
 
 export type AuthUser = {
   id?: string;
@@ -44,6 +45,18 @@ function normalizeStyles(styles: string[] | undefined) {
   return Array.isArray(styles) ? styles.filter(Boolean) : [];
 }
 
+function normalizeUser(user: AuthUser | null): AuthUser | null {
+  if (!user) {
+    return null;
+  }
+
+  return {
+    ...user,
+    styles: normalizeStyles(user.styles),
+    hasCompletedOnboarding: user.hasCompletedOnboarding === true,
+  };
+}
+
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUserState] = useState<AuthUser | null>(null);
   const [isHydratingUser, setIsHydratingUser] = useState(true);
@@ -53,14 +66,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setIsHydratingUser(true);
 
     try {
-      const res = await fetch("/api/me", { credentials: "include" });
+      const data = normalizeUser(await fetchCurrentUser());
 
-      if (!res.ok) {
+      if (!data) {
         setUserState(null);
         return null;
       }
 
-      const data = (await res.json()) as AuthUser;
+      console.log("User from DB:", data);
+      console.log("Styles from DB:", data?.styles);
       setUserState(data);
       return data;
     } catch {
@@ -77,7 +91,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, [refreshUser]);
 
   const setUser = useCallback((nextUser: SetStateAction<AuthUser | null>) => {
-    setUserState(nextUser);
+    setUserState((currentUser) =>
+      normalizeUser(
+        typeof nextUser === "function"
+          ? (nextUser as (user: AuthUser | null) => AuthUser | null)(currentUser)
+          : nextUser
+      )
+    );
     setHasHydratedUser(true);
     setIsHydratingUser(false);
   }, []);
@@ -90,24 +110,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
     console.log("Selected:", normalizedStyles);
     console.log("User BEFORE:", user);
 
-    const res = await fetch("/api/me", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
+    const updatedUser = normalizeUser(
+      await persistUserUpdate({
         styles: normalizedStyles,
         hasCompletedOnboarding,
-      }),
-    });
-
-    if (!res.ok) {
-      throw new Error("Could not save style preferences");
-    }
-
-    const data = (await res.json()) as AuthUser;
-    console.log("User AFTER UPDATE:", data);
-    setUser(data);
-    return data;
+      })
+    );
+    console.log("User AFTER UPDATE:", updatedUser);
+    setUser(updatedUser);
+    return updatedUser as AuthUser;
   }, [setUser, user]);
 
   const isAuthenticated = hasHydratedUser && user !== null;

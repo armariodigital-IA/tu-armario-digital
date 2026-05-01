@@ -111,7 +111,7 @@ function getWeatherCardTheme(condition: string) {
 
 export default function Dashboard() {
   const { language, setLanguage, t } = useLanguage();
-  const { user, hasHydratedUser, saveStylePreferences, setUser } = useUser();
+  const { user, hasHydratedUser, saveStylePreferences } = useUser();
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [hourly, setHourly] = useState<HourlyForecast[]>([]);
   const [showMenu, setShowMenu] = useState(false);
@@ -247,19 +247,6 @@ export default function Dashboard() {
       });
 
       console.log("User after save:", updatedUser);
-
-      setUser((previousUser) => {
-        if (!previousUser) {
-          return updatedUser;
-        }
-
-        return {
-          ...previousUser,
-          ...updatedUser,
-          styles,
-          hasCompletedOnboarding: true,
-        };
-      });
 
       window.localStorage.setItem("onboardingCompleted", "true");
 
