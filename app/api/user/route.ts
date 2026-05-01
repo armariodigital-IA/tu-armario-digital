@@ -99,30 +99,33 @@ async function updateUser(req: NextRequest) {
     console.log("Styles received:", styles);
 
     const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      {
-        $set: {
-          styles,
-          hasCompletedOnboarding:
-            typeof body.hasCompletedOnboarding === "boolean"
-              ? body.hasCompletedOnboarding
-              : true,
-        },
-      },
-      {
-        new: true,
-        runValidators: true,
-      }
-    )
-      .select("-password")
-      .lean();
+  userId,
+  {
+    $set: {
+      styles,
+      hasCompletedOnboarding:
+        typeof body.hasCompletedOnboarding === "boolean"
+          ? body.hasCompletedOnboarding
+          : true,
+    },
+  },
+  {
+    new: true,
+    runValidators: true,
+  }
+)
+  .select("-password")
+  .lean();
 
-    if (!updatedUser) {
-      return NextResponse.json(
-        { error: "Usuario no encontrado" },
-        { status: 404 }
-      );
-    }
+// 👇 🔥 ACÁ EXACTAMENTE
+console.log("RAW USER FROM DB:", updatedUser);
+
+if (!updatedUser) {
+  return NextResponse.json(
+    { error: "Usuario no encontrado" },
+    { status: 404 }
+  );
+}
 
     const normalizedUser = normalizeUserDocument(updatedUser as Record<string, unknown>);
     console.log("Styles saved:", normalizedUser.styles);
