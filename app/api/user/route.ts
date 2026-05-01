@@ -33,6 +33,7 @@ export async function GET(req: NextRequest) {
     await connectDB();
 
     const userId = getAuthenticatedUserId(req);
+    console.log("GET USER ID:", userId);
 
     if (userId instanceof NextResponse) {
       return userId;
@@ -65,6 +66,7 @@ async function updateUser(req: NextRequest) {
     await connectDB();
 
     const userId = getAuthenticatedUserId(req);
+    console.log("PUT USER ID:", userId);
 
     if (userId instanceof NextResponse) {
       return userId;
