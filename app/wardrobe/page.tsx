@@ -131,7 +131,10 @@ export default function Wardrobe() {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [activeCategoryView, setActiveCategoryView] = useState<GarmentCategory | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [isProcessingUpload, setIsProcessingUpload] = useState(false);
+  const [originalUploadImageUrl, setOriginalUploadImageUrl] = useState("");
+  const [processedUploadImageUrl, setProcessedUploadImageUrl] = useState("");
+  const [selectedUploadVersion, setSelectedUploadVersion] = useState<"original" | "processed">("original");
+  const [isRemovingBackground, setIsRemovingBackground] = useState(false);
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
   const [analysisMessage, setAnalysisMessage] = useState("");
   const [isDragActive, setIsDragActive] = useState(false);
@@ -220,7 +223,10 @@ export default function Wardrobe() {
     setAddDraft(defaultDraft());
     setAddError("");
     setAnalysisMessage("");
-    setIsProcessingUpload(false);
+    setOriginalUploadImageUrl("");
+    setProcessedUploadImageUrl("");
+    setSelectedUploadVersion("original");
+    setIsRemovingBackground(false);
     setIsAnalyzingImage(false);
     setIsDragActive(false);
   };
@@ -305,45 +311,69 @@ export default function Wardrobe() {
       reader.readAsDataURL(file);
     });
 
-  const processGarmentImage = async (file: File) => {
-    const formData = new FormData();
-    formData.append("image", file);
+  const removeGarmentBackground = async () => {
+    if (!originalUploadImageUrl || isRemovingBackground) return;
 
-    const res = await fetch("/api/wardrobe/process-image", {
-      method: "POST",
-      credentials: "include",
-      body: formData,
-    });
-    const data = (await res.json()) as { imageUrl?: string; error?: string };
-
-    if (!res.ok || !data.imageUrl) {
-      throw new Error(data.error || t("analyzeImageError"));
-    }
-
-    return data.imageUrl;
-  };
-
-  const handleSelectedFile = async (file: File) => {
-    setIsProcessingUpload(true);
+    setIsRemovingBackground(true);
     setAddError("");
     setAnalysisMessage("");
 
     try {
-      const processedImageUrl = await processGarmentImage(file);
-      setAddDraft((current) => ({ ...current, imageUrl: processedImageUrl }));
-      void analyzeGarmentImage(processedImageUrl);
-    } catch {
-      try {
-        const originalImageUrl = await readFileAsDataUrl(file);
-        setAddDraft((current) => ({ ...current, imageUrl: originalImageUrl }));
-        void analyzeGarmentImage(originalImageUrl);
-      } catch (readError) {
-        setAddError(
-          readError instanceof Error ? readError.message : t("analyzeImageError")
-        );
+      const res = await fetch("/api/wardrobe/remove-background", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ imageUrl: originalUploadImageUrl }),
+      });
+      const data = (await res.json()) as { imageUrl?: string; error?: string };
+
+      if (!res.ok || !data.imageUrl) {
+        throw new Error(data.error || "No se pudo quitar el fondo");
       }
+
+      setProcessedUploadImageUrl(data.imageUrl);
+      setAnalysisMessage("Fondo quitado. Compará y elegí la versión que querés guardar.");
+    } catch (removeError) {
+      setProcessedUploadImageUrl("");
+      setSelectedUploadVersion("original");
+      setAddDraft((current) => ({ ...current, imageUrl: originalUploadImageUrl }));
+      setAddError(
+        removeError instanceof Error
+          ? removeError.message
+          : "No se pudo quitar el fondo. Se mantiene la imagen original."
+      );
     } finally {
-      setIsProcessingUpload(false);
+      setIsRemovingBackground(false);
+    }
+  };
+
+  const chooseUploadVersion = (version: "original" | "processed") => {
+    const nextImageUrl =
+      version === "processed" ? processedUploadImageUrl : originalUploadImageUrl;
+
+    if (!nextImageUrl) return;
+
+    setSelectedUploadVersion(version);
+    setAddDraft((current) => ({ ...current, imageUrl: nextImageUrl }));
+  };
+
+  const handleSelectedFile = async (file: File) => {
+    setIsRemovingBackground(false);
+    setAddError("");
+    setAnalysisMessage("");
+    setProcessedUploadImageUrl("");
+    setSelectedUploadVersion("original");
+
+    try {
+      const originalImageUrl = await readFileAsDataUrl(file);
+      setOriginalUploadImageUrl(originalImageUrl);
+      setAddDraft((current) => ({ ...current, imageUrl: originalImageUrl }));
+      void analyzeGarmentImage(originalImageUrl);
+    } catch (readError) {
+      setOriginalUploadImageUrl("");
+      setAddError(
+        readError instanceof Error ? readError.message : t("analyzeImageError")
+      );
     }
   };
 
@@ -784,10 +814,56 @@ export default function Wardrobe() {
                   )}
                 </label>
 
-                {(isProcessingUpload || isAnalyzingImage) && (
+                {addDraft.imageUrl && (
+                  <div className="grid gap-4 rounded-[24px] border border-[#E6ECF7] bg-white/70 p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-[#162B4E]">
+                          Vista previa
+                        </p>
+                        <p className="mt-1 text-sm text-[#5B6B87]">
+                          La imagen original se mantiene hasta que elijas otra versión.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void removeGarmentBackground()}
+                        disabled={!originalUploadImageUrl || isRemovingBackground}
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#162B4E] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isRemovingBackground && (
+                          <LoaderCircle className="animate-spin" size={16} />
+                        )}
+                        Quitar fondo (beta)
+                      </button>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <PreviewChoice
+                        imageUrl={originalUploadImageUrl || addDraft.imageUrl}
+                        label="Original"
+                        active={selectedUploadVersion === "original"}
+                        onSelect={() => chooseUploadVersion("original")}
+                      />
+                      <PreviewChoice
+                        imageUrl={processedUploadImageUrl}
+                        label="Sin fondo"
+                        active={selectedUploadVersion === "processed"}
+                        onSelect={() => chooseUploadVersion("processed")}
+                        emptyLabel={
+                          isRemovingBackground
+                            ? "Procesando..."
+                            : "Todavía no generada"
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {(isRemovingBackground || isAnalyzingImage) && (
                   <div className="flex items-center gap-3 rounded-2xl bg-[#162B4E] px-4 py-3 text-sm font-medium text-white">
                     <LoaderCircle className="animate-spin" size={18} />
-                    {isProcessingUpload ? t("processing") : t("analyzingImage")}
+                    {isRemovingBackground ? "Quitando fondo..." : t("analyzingImage")}
                   </div>
                 )}
 
@@ -824,7 +900,7 @@ export default function Wardrobe() {
                     <button
                       type="button"
                       onClick={() => void analyzeGarmentImage(addDraft.imageUrl)}
-                  disabled={!addDraft.imageUrl || isAnalyzingImage || isProcessingUpload}
+                      disabled={!addDraft.imageUrl || isAnalyzingImage || isRemovingBackground}
                       className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#e8eef9] px-4 py-3 text-sm font-semibold text-[#162B4E] transition hover:bg-[#dfe8f7] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <Sparkles size={16} />
@@ -835,10 +911,10 @@ export default function Wardrobe() {
 
                 <button
                   onClick={addGarment}
-                  disabled={isAnalyzingImage || isProcessingUpload}
+                  disabled={isAnalyzingImage || isRemovingBackground}
                   className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#162B4E] px-5 py-3.5 text-base font-semibold text-white transition hover:opacity-92 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {(isAnalyzingImage || isProcessingUpload) && (
+                  {(isAnalyzingImage || isRemovingBackground) && (
                     <LoaderCircle className="animate-spin" size={18} />
                   )}
                   {t("saveGarment")}
@@ -1199,6 +1275,56 @@ function DetailRow({ label, value }: { label: string; value: string }) {
         {value}
       </p>
     </div>
+  );
+}
+
+function PreviewChoice({
+  imageUrl,
+  label,
+  active,
+  onSelect,
+  emptyLabel = "Sin vista previa",
+}: {
+  imageUrl: string;
+  label: string;
+  active: boolean;
+  onSelect: () => void;
+  emptyLabel?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      disabled={!imageUrl}
+      className={`min-w-0 rounded-[22px] border p-3 text-left transition ${
+        active
+          ? "border-[#162B4E] bg-white shadow-[0_14px_34px_rgba(22,43,78,0.12)]"
+          : "border-[#E6ECF7] bg-[#F8FBFF] hover:border-[#AEBBD0]"
+      } disabled:cursor-not-allowed disabled:opacity-70`}
+    >
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <span className="text-sm font-semibold text-[#162B4E]">{label}</span>
+        {active && (
+          <span className="rounded-full bg-[#162B4E] px-2.5 py-1 text-xs font-semibold text-white">
+            Elegida
+          </span>
+        )}
+      </div>
+      <div className="flex aspect-square items-center justify-center overflow-hidden rounded-[18px] bg-white/70">
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={label}
+            loading="lazy"
+            className="h-full w-full object-contain p-3 drop-shadow-[0_14px_18px_rgba(48,71,100,0.16)]"
+          />
+        ) : (
+          <span className="px-4 text-center text-sm font-medium text-[#6E7F9F]">
+            {emptyLabel}
+          </span>
+        )}
+      </div>
+    </button>
   );
 }
 
