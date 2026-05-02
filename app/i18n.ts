@@ -594,6 +594,98 @@ export const translations = {
     es: "Crear outfit con AI",
     en: "Create outfit with AI",
   },
+  smartOutfitTitle: {
+    es: "Smart Outfit Generator",
+    en: "Smart Outfit Generator",
+  },
+  smartOutfitDescription: {
+    es: "Elegí el contexto y generá una propuesta visual usando tu estilo, tu armario y el clima actual.",
+    en: "Choose the context and generate a visual look using your style, wardrobe, and current weather.",
+  },
+  smartOutfitOptionsTitle: {
+    es: "Opciones del outfit",
+    en: "Outfit options",
+  },
+  smartOutfitOptionsHint: {
+    es: "Ajustá los parámetros y generamos una combinación equilibrada.",
+    en: "Adjust the parameters and we'll build a balanced combination.",
+  },
+  smartOutfitResultTitle: {
+    es: "Resultado visual",
+    en: "Visual result",
+  },
+  smartOutfitResultHint: {
+    es: "Una composición inspirada en Pinterest con prendas priorizadas por afinidad.",
+    en: "A Pinterest-inspired composition with garments prioritized by affinity.",
+  },
+  weatherLabel: {
+    es: "Clima",
+    en: "Weather",
+  },
+  weatherEditableHint: {
+    es: "Se detecta automáticamente, pero podés editarlo.",
+    en: "Detected automatically, but you can edit it.",
+  },
+  loadingGarments: {
+    es: "Cargando prendas...",
+    en: "Loading garments...",
+  },
+  styleAccountHint: {
+    es: "Podés cambiar tus estilos en la sección de cuenta",
+    en: "You can change your styles in the account section",
+  },
+  regenerateOutfit: {
+    es: "Regenerar outfit",
+    en: "Regenerate outfit",
+  },
+  useWardrobeOnlyHint: {
+    es: "Si lo desactivás, completamos faltantes con sugerencias visuales.",
+    en: "If you turn this off, we'll fill gaps with visual suggestions.",
+  },
+  smartOutfitGenerating: {
+    es: "Generando outfit...",
+    en: "Generating outfit...",
+  },
+  smartOutfitReady: {
+    es: "Outfit listo",
+    en: "Outfit ready",
+  },
+  smartOutfitInsufficientTitle: {
+    es: "Faltan prendas para completar el look",
+    en: "More garments are needed to complete the look",
+  },
+  smartOutfitInsufficientBody: {
+    es: "Necesitás al menos un top, un bottom y un par de zapatos para generar el outfit.",
+    en: "You need at least one top, one bottom, and one pair of shoes to generate the outfit.",
+  },
+  smartOutfitEmptyTitle: {
+    es: "Todavía no generaste un outfit",
+    en: "You haven't generated an outfit yet",
+  },
+  smartOutfitEmptyBody: {
+    es: "Completá las opciones de la izquierda y tocá el botón para ver la propuesta visual.",
+    en: "Fill out the options on the left and press the button to see the visual proposal.",
+  },
+  smartOutfitFallbackUsed: {
+    es: "Incluye sugerencias externas para completar el look.",
+    en: "Includes external suggestions to complete the look.",
+  },
+  smartOutfitFromWardrobe: {
+    es: "De tu armario",
+    en: "From your wardrobe",
+  },
+  smartOutfitSuggested: {
+    es: "Sugerido",
+    en: "Suggested",
+  },
+  accessory: {
+    es: "Accesorio",
+    en: "Accessory",
+  },
+  smartOutfitNoImage: {
+    es: "Sin imagen",
+    en: "No image",
+  },
   occasionCasual: {
     es: "Casual",
     en: "Casual",

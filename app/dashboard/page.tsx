@@ -80,6 +80,14 @@ function translateWeatherCondition(condition: string, language: Language) {
   );
 }
 
+function formatStyleLabel(style: string) {
+  return style
+    .split("-")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 function getWeatherCardTheme(condition: string) {
   const normalized = condition.toLowerCase();
 
@@ -344,6 +352,14 @@ export default function Dashboard() {
           {showMenu && (
             <div className="absolute right-0 z-30 mt-3 min-w-[280px] overflow-hidden rounded-2xl bg-white p-4 shadow-xl">
               <div className="relative z-10 space-y-4">
+              <div className="rounded-2xl bg-[#162B4E] p-4 text-white shadow-lg">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">
+                  Cuenta
+                </p>
+                <p className="mt-2 truncate text-sm font-medium text-white">
+                  {user?.email ?? ""}
+                </p>
+              </div>
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#162B4E]/60">
@@ -367,7 +383,7 @@ export default function Dashboard() {
                         key={style}
                         className="rounded-full bg-[#F5EFE3] px-3 py-1.5 text-xs font-medium text-[#162B4E]"
                       >
-                        {style.replace(/-/g, " ")}
+                        {formatStyleLabel(style)}
                       </span>
                     ))
                   ) : (

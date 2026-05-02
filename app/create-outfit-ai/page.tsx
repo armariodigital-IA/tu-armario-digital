@@ -5,11 +5,8 @@ import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle2, LoaderCircle, Sparkles, Shirt } from "lucide-react";
 import { useLanguage } from "@/app/providers/LanguageProvider";
 import { useUser } from "@/app/providers/UserProvider";
-
-type Garment = {
-  _id: string;
-  category: "top" | "bottom" | "shoes" | "outerwear";
-};
+import { useGarments } from "@/app/providers/GarmentsProvider";
+import { normalizeGarmentCategory } from "@/lib/garment-utils";
 
 type WardrobeRequirement = {
   tops: number;
@@ -61,6 +58,7 @@ export default function GenerateAIOutfit() {
   const router = useRouter();
   const { t } = useLanguage();
   const { user, hasHydratedUser } = useUser();
+  const { garments, loaded, isLoadingGarments, refreshGarments } = useGarments();
   const [occasion, setOccasion] = useState("casual");
   const [timeOfDay, setTimeOfDay] = useState("morning");
   const [freeText, setFreeText] = useState("");
@@ -73,25 +71,12 @@ export default function GenerateAIOutfit() {
   const [palette, setPalette] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [wardrobeRequirement, setWardrobeRequirement] = useState<WardrobeRequirement>({
-    tops: 0,
-    bottoms: 0,
-    shoes: 0,
-  });
 
   useEffect(() => {
-    fetch("/api/wardrobe", { credentials: "include" })
-      .then((res) => res.json())
-      .then((data: Garment[]) => {
-        const garments = Array.isArray(data) ? data : [];
-        setWardrobeRequirement({
-          tops: garments.filter((garment) => garment.category === "top").length,
-          bottoms: garments.filter((garment) => garment.category === "bottom").length,
-          shoes: garments.filter((garment) => garment.category === "shoes").length,
-        });
-      })
-      .catch(() => undefined);
-  }, []);
+    if (!loaded && garments.length === 0 && !isLoadingGarments) {
+      void refreshGarments();
+    }
+  }, [garments.length, isLoadingGarments, loaded, refreshGarments]);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -129,6 +114,21 @@ export default function GenerateAIOutfit() {
     return source.map((style) => style.replace(/-/g, " "));
   }, [user?.styles]);
 
+  const wardrobeRequirement = useMemo<WardrobeRequirement>(() => {
+    const normalizedGarments = garments.map((garment) => ({
+      ...garment,
+      category: normalizeGarmentCategory(garment.category),
+    }));
+
+    return {
+      tops: normalizedGarments.filter((garment) => garment.category === "top").length,
+      bottoms: normalizedGarments.filter((garment) => garment.category === "bottom").length,
+      shoes: normalizedGarments.filter((garment) => garment.category === "shoes").length,
+    };
+  }, [garments]);
+
+  const hasLoadedWardrobe = loaded || garments.length > 0;
+
   const meetsWardrobeMinimum =
     wardrobeRequirement.tops >= 5 &&
     wardrobeRequirement.bottoms >= 4 &&
@@ -137,6 +137,12 @@ export default function GenerateAIOutfit() {
   const generate = async () => {
     if (!user?.styles || user.styles.length === 0) {
       setError(t("saveFirstStyles"));
+      return;
+    }
+
+    if (!hasLoadedWardrobe) {
+      setError(t("loadWardrobeError"));
+      await refreshGarments(true);
       return;
     }
 
@@ -401,10 +407,17 @@ export default function GenerateAIOutfit() {
                 <button
                   type="button"
                   onClick={() => void generate()}
-                  disabled={loading || !meetsWardrobeMinimum}
+                  disabled={
+                    loading ||
+                    isLoadingGarments ||
+                    !hasLoadedWardrobe ||
+                    !meetsWardrobeMinimum
+                  }
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#162B4E] px-6 py-4 text-base font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {loading && <LoaderCircle className="animate-spin" size={18} />}
+                  {(loading || isLoadingGarments) && (
+                    <LoaderCircle className="animate-spin" size={18} />
+                  )}
                   {t("generateStyledOutfit")}
                 </button>
               </div>

@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  useCallback,
   useEffect,
   useRef,
   useState,
@@ -24,23 +23,14 @@ import {
   X,
 } from "lucide-react";
 import { useLanguage } from "@/app/providers/LanguageProvider";
+import {
+  useGarments,
+  type Garment,
+  type GarmentCategory,
+  type GarmentSeason,
+} from "@/app/providers/GarmentsProvider";
+import type { Language } from "@/app/i18n";
 import type { TranslationKey } from "@/app/i18n";
-
-type GarmentCategory = "top" | "bottom" | "shoes" | "outerwear";
-type GarmentSeason = "all" | "summer" | "winter";
-
-type Garment = {
-  _id: string;
-  name: string;
-  category: GarmentCategory;
-  color: string;
-  style?: string;
-  material?: string;
-  season: GarmentSeason;
-  imageUrl: string;
-  isFavorite?: boolean;
-  favorite?: boolean;
-};
 
 type GarmentAnalysis = {
   name: string;
@@ -61,8 +51,6 @@ type GarmentDraft = {
   imageUrl: string;
   isFavorite: boolean;
 };
-
-const WARDROBE_CACHE_KEY = "wardrobe-garments";
 
 const defaultDraft = (): GarmentDraft => ({
   name: "",
@@ -94,19 +82,56 @@ const normalizeGarment = (garment: Garment): Garment => ({
   material: garment.material ?? "",
 });
 
+const colorTranslations = {
+  black: { es: "Negro", en: "Black" },
+  white: { es: "Blanco", en: "White" },
+  blue: { es: "Azul", en: "Blue" },
+  red: { es: "Rojo", en: "Red" },
+  green: { es: "Verde", en: "Green" },
+  gray: { es: "Gris", en: "Gray" },
+  grey: { es: "Gris", en: "Grey" },
+  beige: { es: "Beige", en: "Beige" },
+  brown: { es: "Marron", en: "Brown" },
+  pink: { es: "Rosa", en: "Pink" },
+  purple: { es: "Morado", en: "Purple" },
+  yellow: { es: "Amarillo", en: "Yellow" },
+  orange: { es: "Naranja", en: "Orange" },
+} satisfies Record<string, Record<Language, string>>;
+
+function capitalizeWords(value: string) {
+  return value.replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function translateColor(color: string, language: Language) {
+  const normalizedColor = color.trim().toLowerCase();
+  const directTranslation =
+    colorTranslations[normalizedColor as keyof typeof colorTranslations]?.[language];
+
+  if (directTranslation) {
+    return directTranslation;
+  }
+
+  return capitalizeWords(color.trim());
+}
+
 export default function Wardrobe() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
+  const {
+    garments,
+    loaded,
+    isLoadingGarments,
+    refreshGarments,
+    setGarments,
+  } = useGarments();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  const [garments, setGarments] = useState<Garment[]>([]);
-  const [isLoadingGarments, setIsLoadingGarments] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedGarment, setSelectedGarment] = useState<Garment | null>(null);
   const [garmentPendingDelete, setGarmentPendingDelete] = useState<Garment | null>(null);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [activeCategoryView, setActiveCategoryView] = useState<GarmentCategory | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isProcessingUpload, setIsProcessingUpload] = useState(false);
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
   const [analysisMessage, setAnalysisMessage] = useState("");
   const [isDragActive, setIsDragActive] = useState(false);
@@ -138,26 +163,21 @@ export default function Wardrobe() {
   const getSeasonLabel = (value: GarmentSeason) =>
     seasonOptions.find((option) => option.value === value)?.label ?? value;
 
-  const persistGarments = useCallback((nextGarments: Garment[]) => {
-    setGarments(nextGarments);
-    window.sessionStorage.setItem(
-      WARDROBE_CACHE_KEY,
-      JSON.stringify(nextGarments)
-    );
-  }, []);
-
   const syncGarmentInState = (updatedGarment: Garment) => {
     const normalized = normalizeGarment(updatedGarment);
 
     setGarments((current) => {
-      const nextGarments = current.map((garment) =>
+      const existingIndex = current.findIndex(
+        (garment) => garment._id === normalized._id
+      );
+
+      if (existingIndex === -1) {
+        return [normalized, ...current];
+      }
+
+      return current.map((garment) =>
         garment._id === normalized._id ? normalized : garment
       );
-      window.sessionStorage.setItem(
-        WARDROBE_CACHE_KEY,
-        JSON.stringify(nextGarments)
-      );
-      return nextGarments;
     });
     setSelectedGarment((current) =>
       current?._id === normalized._id ? normalized : current
@@ -167,45 +187,11 @@ export default function Wardrobe() {
     );
   };
 
-  const fetchGarments = useCallback(async () => {
-    setIsLoadingGarments(true);
-    const res = await fetch("/api/wardrobe", { credentials: "include" });
-    if (!res.ok) {
-      setIsLoadingGarments(false);
-      return;
-    }
-
-    const data = await res.json();
-    const normalizedGarments = Array.isArray(data)
-      ? (data as Garment[]).map(normalizeGarment)
-      : [];
-    persistGarments(normalizedGarments);
-    setIsLoadingGarments(false);
-  }, [persistGarments]);
-
   useEffect(() => {
-    const cachedGarments = window.sessionStorage.getItem(WARDROBE_CACHE_KEY);
-
-    if (cachedGarments) {
-      try {
-        const parsedGarments = JSON.parse(cachedGarments) as Garment[];
-        if (Array.isArray(parsedGarments)) {
-          setGarments(parsedGarments.map(normalizeGarment));
-          setIsLoadingGarments(false);
-          return;
-        }
-      } catch {
-        window.sessionStorage.removeItem(WARDROBE_CACHE_KEY);
-      }
+    if (!loaded && !isLoadingGarments) {
+      void refreshGarments();
     }
-
-    if (garments.length === 0) {
-      void fetchGarments();
-      return;
-    }
-
-    setIsLoadingGarments(false);
-  }, [fetchGarments, garments.length]);
+  }, [isLoadingGarments, loaded, refreshGarments]);
 
   useEffect(() => {
     if (!favoriteFeedback) return;
@@ -220,6 +206,8 @@ export default function Wardrobe() {
   const filteredGarments = showFavoritesOnly
     ? garments.filter((garment) => garment.isFavorite)
     : garments;
+  const visibleGarmentsLimit = 6;
+  const viewMoreLabel = language === "es" ? "Ver más" : "See more";
   const categorySections = categoryOptions
     .map((option) => ({
       ...option,
@@ -232,6 +220,7 @@ export default function Wardrobe() {
     setAddDraft(defaultDraft());
     setAddError("");
     setAnalysisMessage("");
+    setIsProcessingUpload(false);
     setIsAnalyzingImage(false);
     setIsDragActive(false);
   };
@@ -297,28 +286,71 @@ export default function Wardrobe() {
     }
   };
 
-  const handleSelectedFile = (file: File) => {
-    const reader = new FileReader();
+  const readFileAsDataUrl = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
 
-    reader.onloadend = () => {
-      const result = reader.result;
+      reader.onloadend = () => {
+        const result = reader.result;
 
-      if (typeof result !== "string") {
-        setAddError(t("analyzeImageError"));
-        return;
+        if (typeof result === "string") {
+          resolve(result);
+          return;
+        }
+
+        reject(new Error(t("analyzeImageError")));
+      };
+
+      reader.onerror = () => reject(new Error(t("analyzeImageError")));
+      reader.readAsDataURL(file);
+    });
+
+  const processGarmentImage = async (file: File) => {
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const res = await fetch("/api/wardrobe/process-image", {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+    const data = (await res.json()) as { imageUrl?: string; error?: string };
+
+    if (!res.ok || !data.imageUrl) {
+      throw new Error(data.error || t("analyzeImageError"));
+    }
+
+    return data.imageUrl;
+  };
+
+  const handleSelectedFile = async (file: File) => {
+    setIsProcessingUpload(true);
+    setAddError("");
+    setAnalysisMessage("");
+
+    try {
+      const processedImageUrl = await processGarmentImage(file);
+      setAddDraft((current) => ({ ...current, imageUrl: processedImageUrl }));
+      void analyzeGarmentImage(processedImageUrl);
+    } catch {
+      try {
+        const originalImageUrl = await readFileAsDataUrl(file);
+        setAddDraft((current) => ({ ...current, imageUrl: originalImageUrl }));
+        void analyzeGarmentImage(originalImageUrl);
+      } catch (readError) {
+        setAddError(
+          readError instanceof Error ? readError.message : t("analyzeImageError")
+        );
       }
-
-      setAddDraft((current) => ({ ...current, imageUrl: result }));
-      void analyzeGarmentImage(result);
-    };
-
-    reader.readAsDataURL(file);
+    } finally {
+      setIsProcessingUpload(false);
+    }
   };
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    handleSelectedFile(file);
+    void handleSelectedFile(file);
   };
 
   const handleDrop = (event: DragEvent<HTMLLabelElement>) => {
@@ -328,7 +360,7 @@ export default function Wardrobe() {
     const file = event.dataTransfer.files?.[0];
     if (!file) return;
 
-    handleSelectedFile(file);
+    void handleSelectedFile(file);
   };
 
   const addGarment = async () => {
@@ -351,9 +383,9 @@ export default function Wardrobe() {
       return;
     }
 
+    const data = (await res.json()) as Garment;
+    syncGarmentInState(data);
     resetGarmentForm();
-    window.sessionStorage.removeItem(WARDROBE_CACHE_KEY);
-    void fetchGarments();
   };
 
   const saveGarmentChanges = async () => {
@@ -451,16 +483,7 @@ export default function Wardrobe() {
       }
 
       setGarments((current) =>
-        {
-          const nextGarments = current.filter(
-            (garment) => garment._id !== garmentPendingDelete._id
-          );
-          window.sessionStorage.setItem(
-            WARDROBE_CACHE_KEY,
-            JSON.stringify(nextGarments)
-          );
-          return nextGarments;
-        }
+        current.filter((garment) => garment._id !== garmentPendingDelete._id)
       );
       setSelectedGarment((current) =>
         current?._id === garmentPendingDelete._id ? null : current
@@ -544,16 +567,20 @@ export default function Wardrobe() {
           </div>
         </div>
 
-        {isLoadingGarments ? (
-          <div className="flex min-h-[360px] items-center justify-center rounded-[32px] border border-dashed border-[#d6cfbf] bg-[#FCFAF6] px-6 text-center shadow-[0_24px_80px_rgba(15,23,42,0.06)]">
-            <div className="max-w-md">
-              <p className="text-xl font-semibold text-[#162B4E]">
-                Loading clothes...
-              </p>
-              <p className="mt-3 text-sm leading-6 text-[#4B5F82]">
-                {t("wardrobeBannerBody")}
-              </p>
-            </div>
+        {!loaded && isLoadingGarments ? (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <div
+                key={index}
+                className="overflow-hidden rounded-[24px] border border-[#E7DDCB] bg-white/45"
+              >
+                <div className="aspect-square animate-pulse bg-white/70" />
+                <div className="space-y-3 p-4">
+                  <div className="h-4 w-3/4 animate-pulse rounded-full bg-[#E7DDCB]" />
+                  <div className="h-3 w-1/2 animate-pulse rounded-full bg-[#EFE7D8]" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : filteredGarments.length === 0 ? (
           <div className="flex min-h-[360px] items-center justify-center rounded-[32px] border border-dashed border-[#d6cfbf] bg-[#FCFAF6] px-6 text-center shadow-[0_24px_80px_rgba(15,23,42,0.06)]">
@@ -584,23 +611,25 @@ export default function Wardrobe() {
                     onClick={() => setActiveCategoryView(section.value)}
                     className="rounded-full border border-[#D9D2C4] bg-white px-4 py-2 text-sm font-semibold text-[#162B4E] transition hover:border-[#162B4E] hover:bg-[#FCFAF6]"
                   >
-                    {t("viewAll")}
+                    {viewMoreLabel}
                   </button>
                 </div>
 
-                <div className="overflow-x-auto pb-2">
-                  <div className="flex gap-5">
-                    {section.items.map((garment) => (
-                      <GarmentCard
-                        key={garment._id}
-                        garment={normalizeGarment(garment)}
-                        onOpen={openGarmentDetail}
-                        onToggleFavorite={toggleFavorite}
-                        togglingFavoriteId={togglingFavoriteId}
-                        getCategoryLabel={getCategoryLabel}
-                        t={t}
-                        compact
-                      />
+                <div className="-mx-1 overflow-x-auto pb-3">
+                  <div className="flex min-w-max gap-4 px-1">
+                    {section.items.slice(0, visibleGarmentsLimit).map((garment) => (
+                      <div key={garment._id} className="w-[230px] shrink-0 sm:w-[250px]">
+                        <GarmentCard
+                          garment={normalizeGarment(garment)}
+                          onOpen={openGarmentDetail}
+                          onToggleFavorite={toggleFavorite}
+                          togglingFavoriteId={togglingFavoriteId}
+                          getCategoryLabel={getCategoryLabel}
+                          translateColorLabel={(color) => translateColor(color, language)}
+                          t={t}
+                          compact
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -644,6 +673,7 @@ export default function Wardrobe() {
                     onToggleFavorite={toggleFavorite}
                     togglingFavoriteId={togglingFavoriteId}
                     getCategoryLabel={getCategoryLabel}
+                    translateColorLabel={(color) => translateColor(color, language)}
                     t={t}
                   />
                 ))}
@@ -730,12 +760,12 @@ export default function Wardrobe() {
                         </button>
                       </div>
 
-                      <div className="flex flex-1 items-center justify-center bg-[#f8fbff] p-5">
+                      <div className="flex flex-1 items-center justify-center bg-white/35 p-5">
                         <img
                           src={addDraft.imageUrl}
                           alt={addDraft.name || t("addGarment")}
                           loading="lazy"
-                          className="max-h-[240px] w-full rounded-[20px] object-contain"
+                          className="max-h-[240px] w-full object-contain drop-shadow-[0_18px_24px_rgba(48,71,100,0.16)]"
                         />
                       </div>
                     </div>
@@ -754,10 +784,10 @@ export default function Wardrobe() {
                   )}
                 </label>
 
-                {isAnalyzingImage && (
+                {(isProcessingUpload || isAnalyzingImage) && (
                   <div className="flex items-center gap-3 rounded-2xl bg-[#162B4E] px-4 py-3 text-sm font-medium text-white">
                     <LoaderCircle className="animate-spin" size={18} />
-                    {t("analyzingImage")}
+                    {isProcessingUpload ? t("processing") : t("analyzingImage")}
                   </div>
                 )}
 
@@ -794,7 +824,7 @@ export default function Wardrobe() {
                     <button
                       type="button"
                       onClick={() => void analyzeGarmentImage(addDraft.imageUrl)}
-                      disabled={!addDraft.imageUrl || isAnalyzingImage}
+                  disabled={!addDraft.imageUrl || isAnalyzingImage || isProcessingUpload}
                       className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#e8eef9] px-4 py-3 text-sm font-semibold text-[#162B4E] transition hover:bg-[#dfe8f7] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <Sparkles size={16} />
@@ -805,10 +835,12 @@ export default function Wardrobe() {
 
                 <button
                   onClick={addGarment}
-                  disabled={isAnalyzingImage}
+                  disabled={isAnalyzingImage || isProcessingUpload}
                   className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#162B4E] px-5 py-3.5 text-base font-semibold text-white transition hover:opacity-92 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {isAnalyzingImage && <LoaderCircle className="animate-spin" size={18} />}
+                  {(isAnalyzingImage || isProcessingUpload) && (
+                    <LoaderCircle className="animate-spin" size={18} />
+                  )}
                   {t("saveGarment")}
                 </button>
               </section>
@@ -879,12 +911,12 @@ export default function Wardrobe() {
                   </div>
                 </div>
 
-                <div className="aspect-square overflow-hidden rounded-[24px] bg-[radial-gradient(circle_at_top,#fffaf0,transparent_70%)]">
+                <div className="aspect-square overflow-hidden rounded-[24px] bg-white/35">
                   <img
                     src={detailGarment.imageUrl}
                     alt={detailGarment.name}
                     loading="lazy"
-                    className="h-full w-full object-contain p-6"
+                    className="h-full w-full object-contain p-8 drop-shadow-[0_24px_28px_rgba(48,71,100,0.16)]"
                   />
                 </div>
               </section>
@@ -942,7 +974,10 @@ export default function Wardrobe() {
                   <>
                     <div className="grid gap-3">
                       <DetailRow label={t("categoryLabel")} value={getCategoryLabel(detailGarment.category)} />
-                      <DetailRow label={t("color")} value={detailGarment.color} />
+                      <DetailRow
+                        label={t("color")}
+                        value={translateColor(detailGarment.color, language)}
+                      />
                       <DetailRow label={t("seasonLabel")} value={getSeasonLabel(detailGarment.season)} />
                       <DetailRow
                         label={t("style")}
@@ -1080,6 +1115,7 @@ function GarmentCard({
   onToggleFavorite,
   togglingFavoriteId,
   getCategoryLabel,
+  translateColorLabel,
   t,
   compact = false,
 }: {
@@ -1088,22 +1124,23 @@ function GarmentCard({
   onToggleFavorite: (garment: Garment) => Promise<void>;
   togglingFavoriteId: string | null;
   getCategoryLabel: (value: GarmentCategory) => string;
+  translateColorLabel: (color: string) => string;
   t: (key: TranslationKey, params?: Record<string, string | number>) => string;
   compact?: boolean;
 }) {
   return (
     <article
       onClick={() => onOpen(garment)}
-      className={`group flex cursor-pointer flex-col overflow-hidden rounded-[28px] border border-white/70 bg-[#FCFAF6] shadow-[0_24px_60px_rgba(15,23,42,0.08)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_30px_90px_rgba(15,23,42,0.12)] ${
-        compact ? "min-h-[320px] w-[260px] shrink-0" : "h-full min-h-[360px]"
+      className={`group flex cursor-pointer flex-col overflow-hidden rounded-[24px] border border-[#E7DDCB]/80 bg-white/38 transition duration-200 hover:-translate-y-1 hover:bg-white/62 hover:shadow-[0_22px_48px_rgba(22,43,78,0.10)] ${
+        compact ? "h-full" : "h-full"
       }`}
     >
-      <div className="relative aspect-square overflow-hidden bg-[radial-gradient(circle_at_top,#fffaf0,transparent_70%)]">
+      <div className="relative flex aspect-square items-center justify-center overflow-hidden">
         <img
           src={garment.imageUrl}
           alt={garment.name}
           loading="lazy"
-          className="h-full w-full object-contain p-5"
+          className="h-full w-full object-contain p-7 drop-shadow-[0_18px_24px_rgba(48,71,100,0.14)] transition duration-200 group-hover:scale-[1.035]"
         />
 
         <button
@@ -1114,10 +1151,10 @@ function GarmentCard({
             event.stopPropagation();
             void onToggleFavorite(garment);
           }}
-          className={`absolute right-4 top-4 inline-flex h-11 w-11 items-center justify-center rounded-full border bg-white/92 shadow-sm backdrop-blur transition-all duration-200 ${
+          className={`absolute right-4 top-4 inline-flex h-11 w-11 items-center justify-center rounded-full border bg-white/95 shadow-sm backdrop-blur transition-all duration-200 ${
             garment.isFavorite
               ? "scale-105 border-rose-200 text-red-500 shadow-lg"
-              : "border-[#E3DDD2] text-[#6E7F9F] hover:scale-105 hover:text-red-500"
+              : "border-[#E7DDCB] text-[#5B6B87] hover:scale-105 hover:text-red-500"
           }`}
         >
           {togglingFavoriteId === garment._id ? (
@@ -1131,19 +1168,19 @@ function GarmentCard({
         </button>
       </div>
 
-      <div className="flex flex-1 flex-col justify-between gap-4 p-5">
+      <div className="flex flex-1 flex-col justify-end gap-3 p-4">
         <div className="space-y-2">
-          <h2 className="line-clamp-2 text-lg font-semibold text-[#162B4E]">
+          <h2 className="truncate text-base font-semibold text-[#162B4E] sm:text-lg">
             {garment.name}
           </h2>
-          <p className="text-sm font-medium uppercase tracking-[0.18em] text-[#6E7F9F]">
+          <p className="truncate text-xs font-medium uppercase tracking-[0.18em] text-[#6E7F9F]">
             {getCategoryLabel(garment.category)}
           </p>
         </div>
 
         <div className="flex items-center justify-between gap-3">
-          <span className="rounded-full bg-[#EEF3FB] px-3 py-1.5 text-sm font-medium text-[#27406F]">
-            {garment.color}
+          <span className="truncate rounded-full bg-[#F5EFE3] px-3 py-1.5 text-sm font-medium text-[#162B4E]">
+            {translateColorLabel(garment.color)}
           </span>
           <span className="text-sm font-medium text-[#6E7F9F]">{t("details")}</span>
         </div>

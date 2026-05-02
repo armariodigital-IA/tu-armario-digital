@@ -3,6 +3,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getTokenFromRequest, verifyAuthToken } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
 import { Garment } from "@/models/Garment";
+import {
+  normalizeGarmentCategory,
+  normalizeGarmentSeason,
+} from "@/lib/garment-utils";
 
 type RouteContext = {
   params: Promise<{
@@ -59,6 +63,14 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     if (typeof nextFavorite === "boolean") {
       updates.isFavorite = nextFavorite;
       updates.favorite = nextFavorite;
+    }
+
+    if ("category" in updates) {
+      updates.category = normalizeGarmentCategory(updates.category);
+    }
+
+    if ("season" in updates) {
+      updates.season = normalizeGarmentSeason(updates.season);
     }
 
     const updatedGarment = await Garment.findOneAndUpdate(

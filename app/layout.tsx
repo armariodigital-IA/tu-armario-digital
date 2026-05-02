@@ -1,4 +1,5 @@
 import "./globals.css";
+import { GarmentsProvider } from "./providers/GarmentsProvider";
 import { LanguageProvider } from "./providers/LanguageProvider";
 import { UserProvider } from "./providers/UserProvider";
 
@@ -12,7 +13,7 @@ export default function RootLayout({
       <body className="bg-[#F5EFE3]">
         <LanguageProvider>
           <UserProvider>
-            {children}
+            <GarmentsProvider>{children}</GarmentsProvider>
           </UserProvider>
         </LanguageProvider>
       </body>

@@ -2,6 +2,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { connectDB } from "@/lib/db";
 import { getTokenFromRequest, verifyAuthToken } from "@/lib/auth";
 import { Garment } from "@/models/Garment";
+import {
+  normalizeGarmentCategory,
+  normalizeGarmentSeason,
+} from "@/lib/garment-utils";
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,10 +25,14 @@ export async function POST(req: NextRequest) {
         : typeof body.favorite === "boolean"
           ? body.favorite
           : false;
+    const normalizedCategory = normalizeGarmentCategory(body.category);
+    const normalizedSeason = normalizeGarmentSeason(body.season);
 
     const garment = await Garment.create({
       userId: decoded.id,
       ...body,
+      category: normalizedCategory,
+      season: normalizedSeason,
       isFavorite: nextFavorite,
       favorite: nextFavorite,
     });
@@ -61,6 +69,8 @@ export async function GET(req: NextRequest) {
 
       return {
         ...json,
+        category: normalizeGarmentCategory(json.category),
+        season: normalizeGarmentSeason(json.season),
         isFavorite,
         favorite: isFavorite,
       };

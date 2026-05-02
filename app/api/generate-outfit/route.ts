@@ -4,6 +4,10 @@ import { connectDB } from "@/lib/db";
 import { Garment } from "@/models/Garment";
 import { User } from "@/models/User";
 import { createStyledOutfit, type OutfitRequestInput, type WardrobeGarment } from "@/lib/outfit-stylist";
+import {
+  normalizeGarmentCategory,
+  normalizeGarmentSeason,
+} from "@/lib/garment-utils";
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,7 +38,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const garments = (await Garment.find({ userId: id }).lean()) as WardrobeGarment[];
+    const garments = ((await Garment.find({ userId: id }).lean()) as Array<
+      WardrobeGarment & { userId?: unknown }
+    >).map((garment) => ({
+      ...garment,
+      _id: String(garment._id),
+      category: normalizeGarmentCategory(garment.category),
+      season: normalizeGarmentSeason(garment.season),
+    }));
+
+    console.log("[generate-outfit] user id:", id);
+    console.log(
+      "[generate-outfit] garments fetched before filtering:",
+      garments.map((garment) => ({
+        id: garment._id,
+        name: garment.name,
+        userId: String(garment.userId ?? ""),
+        category: garment.category,
+        season: garment.season,
+      }))
+    );
 
     if (garments.length === 0 && body.useWardrobeOnly !== false) {
       return NextResponse.json(

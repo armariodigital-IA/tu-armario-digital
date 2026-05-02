@@ -5,6 +5,10 @@ import {
   styleSilhouetteMap,
   type UserGender,
 } from "@/lib/style-system";
+import {
+  normalizeGarmentCategory,
+  normalizeGarmentSeason,
+} from "@/lib/garment-utils";
 
 type GarmentCategory = "top" | "bottom" | "shoes" | "outerwear";
 type GarmentSeason = "summer" | "winter" | "all";
@@ -110,8 +114,12 @@ function inferSeason(weather?: OutfitRequestInput["weather"]) {
 
 function needsLayer(weather?: OutfitRequestInput["weather"], occasion?: string) {
   if (occasion === "formal") return true;
-  if (typeof weather?.temp === "number" && weather.temp <= 18) return true;
+  if (typeof weather?.temp === "number" && weather.temp < 18) return true;
   return Boolean(weather?.condition?.toLowerCase().includes("rain"));
+}
+
+function prioritizesLayer(weather?: OutfitRequestInput["weather"]) {
+  return typeof weather?.temp === "number" && weather.temp < 12;
 }
 
 function resolveStyles(styles: string[], memory: StyleMemory) {
@@ -227,6 +235,14 @@ function scoreGarment(params: {
     score += 5;
   }
 
+  if (garment.category === "outerwear" && typeof params.season === "string") {
+    if (params.season === "winter") {
+      score += 6;
+    } else if (params.season === "summer") {
+      score -= 8;
+    }
+  }
+
   const repeatedUsage = recentHistory.filter((entry) =>
     entry.items?.includes(String(garment._id))
   ).length;
@@ -330,9 +346,15 @@ export function createStyledOutfit(params: {
     occasionProfiles[request.occasion ?? "casual"] ?? occasionProfiles.casual;
   const season = inferSeason(request.weather);
   const recentHistory = memory.lastGeneratedOutfits ?? [];
+  const normalizedGarments = garments.map((garment) => ({
+    ...garment,
+    _id: String(garment._id),
+    category: normalizeGarmentCategory(garment.category),
+    season: normalizeGarmentSeason(garment.season),
+  }));
 
   const rankedByCategory = {
-    top: garments
+    top: normalizedGarments
       .filter((garment) => garment.category === "top")
       .map((garment) => ({
         garment,
@@ -348,7 +370,7 @@ export function createStyledOutfit(params: {
         }),
       }))
       .sort((a, b) => b.score - a.score),
-    bottom: garments
+    bottom: normalizedGarments
       .filter((garment) => garment.category === "bottom")
       .map((garment) => ({
         garment,
@@ -364,7 +386,7 @@ export function createStyledOutfit(params: {
         }),
       }))
       .sort((a, b) => b.score - a.score),
-    shoes: garments
+    shoes: normalizedGarments
       .filter((garment) => garment.category === "shoes")
       .map((garment) => ({
         garment,
@@ -380,7 +402,7 @@ export function createStyledOutfit(params: {
         }),
       }))
       .sort((a, b) => b.score - a.score),
-    outerwear: garments
+    outerwear: normalizedGarments
       .filter((garment) => garment.category === "outerwear")
       .map((garment) => ({
         garment,
@@ -397,6 +419,24 @@ export function createStyledOutfit(params: {
       }))
       .sort((a, b) => b.score - a.score),
   };
+
+  console.log("[generate-outfit] garments after filtering by category:", {
+    tops: rankedByCategory.top.map(({ garment }) => ({
+      id: garment._id,
+      name: garment.name,
+      category: garment.category,
+    })),
+    bottoms: rankedByCategory.bottom.map(({ garment }) => ({
+      id: garment._id,
+      name: garment.name,
+      category: garment.category,
+    })),
+    shoes: rankedByCategory.shoes.map(({ garment }) => ({
+      id: garment._id,
+      name: garment.name,
+      category: garment.category,
+    })),
+  });
 
   const topChoices = rankedByCategory.top.slice(0, 4);
   const bottomChoices = rankedByCategory.bottom.slice(0, 4);
@@ -418,9 +458,13 @@ export function createStyledOutfit(params: {
       ? bottomChoices
       : [{ garment: null, score: 0 }]) {
       for (const shoes of shoeChoices.length > 0 ? shoeChoices : [{ garment: null, score: 0 }]) {
+        const layerIsUseful = needsLayer(request.weather, request.occasion);
+        const layerIsPriority = prioritizesLayer(request.weather);
         const potentialLayers =
-          needsLayer(request.weather, request.occasion) && layerChoices.length > 0
-            ? layerChoices
+          layerIsUseful && layerChoices.length > 0
+            ? layerIsPriority
+              ? layerChoices
+              : [{ garment: null, score: 0 }, ...layerChoices]
             : [{ garment: null, score: 0 }];
 
         for (const layer of potentialLayers) {
@@ -433,7 +477,16 @@ export function createStyledOutfit(params: {
 
           const signature = buildSignature(Object.values(selected));
           const similarityPenalty = calculateSimilarity(signature, recentHistory) > 0.7 ? 25 : 0;
-          const baseScore = top.score + bottom.score + shoes.score + layer.score - similarityPenalty;
+          const randomFactor = Math.random() * 4;
+          const layerBonus = layerIsPriority && layer.garment ? 12 : 0;
+          const baseScore =
+            top.score +
+            bottom.score +
+            shoes.score +
+            layer.score +
+            layerBonus +
+            randomFactor -
+            similarityPenalty;
 
           if (
             !best ||

@@ -3,7 +3,12 @@ import { connectDB } from "@/lib/db";
 import { getTokenFromRequest, verifyAuthToken } from "@/lib/auth";
 import { User } from "@/models/User";
 
-function normalizeUserDocument(user: any) {
+type LeanUserDocument = Record<string, unknown> & {
+  styles?: unknown[];
+  hasCompletedOnboarding?: unknown;
+};
+
+function normalizeUserDocument(user: LeanUserDocument) {
   return {
     ...user,
     styles: user.styles ?? [],
@@ -48,7 +53,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const normalizedUser = normalizeUserDocument(user as Record<string, unknown>);
+    const normalizedUser = normalizeUserDocument(user as LeanUserDocument);
     console.log("Styles returned:", normalizedUser.styles);
 
     return NextResponse.json(normalizedUser);
@@ -112,7 +117,7 @@ async function updateUser(req: NextRequest) {
     },
   },
   {
-    new: true,
+    returnDocument: "after",
     runValidators: true,
   }
 )
